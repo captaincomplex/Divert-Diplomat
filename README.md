@@ -19,6 +19,10 @@ routes and diversions.
 | **Brief** | + the working relationship and each country's own airspace/instability/recognition status |
 | **Full** | + full historical background and passenger/crew implications |
 
+**Map** — a tappable world map (works on iPad). Each country is shaded by its own status
+(green OK / amber tension / red hostile-or-closed / grey no-profile), so instability and airspace
+problems read at a glance. Tap two countries to see their relations underneath.
+
 **Diversion checker** — build a scenario and get a combined assessment:
 
 - Type an **ICAO code** (`LTFE`, `EGKK`, `BKPR`…) or a **registration mark** (`G`, `N`, `4X`, `TC`…),
@@ -28,7 +32,13 @@ routes and diversions.
   hostile/sanctioned state) · **passenger restrictions** (e.g. Gibraltar→Spain) · **crew passport
   bars** · **crew nightstop / visa** issues (e.g. US C-1/D).
 
+- **NOTAMs:** the diversion result links out to official NOTAM sources (FAA NOTAM Search, Safe
+  Airspace) with your ICAO codes listed to paste. An offline tool cannot — and should not — cache
+  live, safety-critical NOTAM data, so it points you to the authoritative source instead.
+
 Other: light / dark (day / night) theme toggle, works fully offline, opens on an iPad / EFB.
+
+The world map is `@svg-maps/world` (MIT), minified and inlined so the app stays a single offline file.
 
 ## Usage
 

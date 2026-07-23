@@ -1,4 +1,4 @@
-# Cleared to Divert?
+# Divert Diplomat
 
 A single-file, offline **diplomatic-relations & aircraft-diversion checker** for aircrew — a
 situational-awareness planning aid for "does country X hate country Y?" questions when planning

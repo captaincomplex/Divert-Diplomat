@@ -1,0 +1,776 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cleared to Divert? — Diplomatic &amp; Diversion Checker</title>
+<style>
+  :root{
+    --bg:#eef2f6; --panel:#ffffff; --panel2:#f4f7fa; --line:#d9e1ea;
+    --ink:#152230; --muted:#5f7183; --accent:#1466d6; --accent-ink:#ffffff;
+    --shadow:0 1px 2px rgba(16,32,48,.06),0 6px 20px rgba(16,32,48,.06);
+    --green:#12924a; --green-bg:#e4f6ea; --green-ink:#0a5028;
+    --amber:#c9820a; --amber-bg:#fcf1d8; --amber-ink:#6b4a05;
+    --red:#d4362f;   --red-bg:#fbe4e3;   --red-ink:#7c1a16;
+    --grey:#7c8896;  --grey-bg:#eef2f6;  --grey-ink:#3a4653;
+  }
+  :root[data-theme="dark"]{
+    --bg:#0f1620; --panel:#18232f; --panel2:#131c26; --line:#2b3a49;
+    --ink:#e9f0f6; --muted:#93a4b5; --accent:#4a97ff; --accent-ink:#04121f;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35);
+    --green:#3fc873; --green-bg:#123023; --green-ink:#8ef0b4;
+    --amber:#f0b429; --amber-bg:#33280a; --amber-ink:#ffdd8a;
+    --red:#ff6b64;   --red-bg:#3a1513;   --red-ink:#ffb3ae;
+    --grey:#8b98a6;  --grey-bg:#1c2732;  --grey-ink:#c3ced9;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg); color:var(--ink); line-height:1.5; -webkit-text-size-adjust:100%;}
+  .wrap{max-width:860px;margin:0 auto;padding:18px 16px 72px}
+  .topbar{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+  h1{font-size:1.6rem;margin:.1em 0 .05em;letter-spacing:-.6px}
+  .sub{color:var(--muted);font-size:.92rem;margin:0}
+  .theme-btn{flex:0 0 auto;margin-top:4px;border:1px solid var(--line);background:var(--panel);
+    color:var(--muted);border-radius:9px;padding:8px 11px;font-size:.85rem;cursor:pointer}
+
+  .disclaimer{display:flex;gap:8px;align-items:flex-start;font-size:.8rem;color:var(--muted);
+    background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--amber);
+    border-radius:8px;padding:9px 12px;margin:14px 0 18px}
+  .disclaimer b{color:var(--ink)}
+
+  .modes{display:flex;gap:6px;background:var(--panel2);border:1px solid var(--line);
+    border-radius:12px;padding:5px;margin-bottom:16px}
+  .modes button{flex:1;padding:11px 10px;border-radius:8px;border:none;background:transparent;
+    color:var(--muted);font-size:.95rem;font-weight:650;cursor:pointer}
+  .modes button.active{background:var(--panel);color:var(--ink);box-shadow:var(--shadow)}
+
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;
+    margin-bottom:16px;box-shadow:var(--shadow)}
+  label{display:block;font-size:.72rem;text-transform:uppercase;letter-spacing:.07em;
+    color:var(--muted);font-weight:700;margin:0 0 6px}
+  select,input{width:100%;padding:11px 11px;border-radius:9px;border:1px solid var(--line);
+    background:var(--panel2);color:var(--ink);font-size:1rem}
+  select{-webkit-appearance:none;appearance:none;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%235f7183' stroke-width='2'><path d='M6 9l6 6 6-6'/></svg>");
+    background-repeat:no-repeat;background-position:right 11px center}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .field{margin-bottom:13px}
+  .code{margin-bottom:6px;font-variant:small-caps}
+  .resolved{font-size:.8rem;color:var(--muted);min-height:1.1em;padding-left:2px}
+  .resolved b{color:var(--ink)}
+  .vs{display:flex;align-items:center;justify-content:center;color:var(--muted);
+    font-weight:700;font-size:.85rem;padding:6px 0}
+
+  .detail-seg{display:flex;gap:6px}
+  .detail-seg button{flex:1;padding:9px 6px;border-radius:8px;border:1px solid var(--line);
+    background:var(--panel2);color:var(--muted);font-size:.82rem;cursor:pointer;line-height:1.2}
+  .detail-seg button small{display:block;font-size:.68rem;opacity:.8;font-weight:400}
+  .detail-seg button.active{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:700}
+
+  .go{width:100%;padding:14px;border:none;border-radius:11px;background:var(--accent);
+    color:var(--accent-ink);font-size:1.05rem;font-weight:750;cursor:pointer;margin-top:6px}
+  .go:active{transform:translateY(1px)}
+
+  /* verdict hero */
+  .verdict{border-radius:16px;padding:20px 20px;margin:18px 0 14px;color:#fff;
+    box-shadow:var(--shadow);display:flex;gap:16px;align-items:center}
+  .verdict.green{background:linear-gradient(135deg,#17a556,#0f7d40)}
+  .verdict.amber{background:linear-gradient(135deg,#e0951a,#bd7807)}
+  .verdict.red{background:linear-gradient(135deg,#e04841,#b52a24)}
+  .verdict.grey{background:linear-gradient(135deg,#8a97a5,#69747f)}
+  .verdict .icon{flex:0 0 auto;width:54px;height:54px;border-radius:50%;
+    background:rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;
+    font-size:1.7rem;font-weight:800}
+  .verdict .status{font-size:.72rem;text-transform:uppercase;letter-spacing:.12em;opacity:.9;font-weight:700;margin:0}
+  .verdict .headline{font-size:1.28rem;font-weight:750;margin:2px 0 0;line-height:1.28}
+  .verdict .pair{font-size:.85rem;opacity:.92;margin:6px 0 0}
+
+  .section-h{font-size:.72rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);
+    font-weight:700;margin:20px 0 9px}
+  .finding{border:1px solid var(--line);border-left-width:4px;border-radius:10px;padding:11px 13px;
+    margin-bottom:9px;background:var(--panel)}
+  .finding.green{border-left-color:var(--green);background:var(--green-bg)}
+  .finding.amber{border-left-color:var(--amber);background:var(--amber-bg)}
+  .finding.red{border-left-color:var(--red);background:var(--red-bg)}
+  .finding.grey{border-left-color:var(--grey);background:var(--grey-bg)}
+  .ftitle{display:flex;align-items:center;gap:8px;font-weight:700;font-size:.95rem;margin:0 0 3px}
+  .finding.green .ftitle{color:var(--green-ink)} .finding.amber .ftitle{color:var(--amber-ink)}
+  .finding.red .ftitle{color:var(--red-ink)} .finding.grey .ftitle{color:var(--grey-ink)}
+  .finding p{margin:2px 0 0;font-size:.9rem;color:var(--ink)}
+  .pill{font-size:.64rem;font-weight:800;letter-spacing:.05em;padding:2px 7px;border-radius:20px;text-transform:uppercase;color:#fff}
+  .pill.green{background:var(--green)} .pill.amber{background:var(--amber)}
+  .pill.red{background:var(--red)} .pill.grey{background:var(--grey)}
+
+  .hist h4{margin:16px 0 3px;font-size:.9rem;color:var(--ink)}
+  .hist h4:first-child{margin-top:2px}
+  .hist p{margin:0;font-size:.92rem;color:var(--ink)}
+  .muted{color:var(--muted);font-size:.86rem}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.8rem;color:var(--muted);margin-top:12px}
+  .legend span{display:flex;align-items:center;gap:6px}
+  .legend i{width:12px;height:12px;border-radius:50%;display:inline-block}
+  .foot{color:var(--muted);font-size:.78rem;text-align:center;margin-top:28px;line-height:1.6}
+  code{background:var(--panel2);border:1px solid var(--line);padding:1px 5px;border-radius:5px;font-size:.85em}
+  @media(max-width:560px){ .row{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <div>
+      <h1 id="appTitle">Cleared to Divert?</h1>
+      <p class="sub">Diplomatic relations &amp; aircraft-diversion checker · aircrew planning aid</p>
+    </div>
+    <button class="theme-btn" id="themeBtn" onclick="toggleTheme()">🌙 Night</button>
+  </div>
+
+  <div class="disclaimer">
+    <span>⚠️</span>
+    <span><b>Not an operational source.</b> Curated mid-2026 snapshot for situational awareness only.
+    Relations, airspace and entry rules change fast — always verify against current NOTAMs, company Ops/Dispatch,
+    State AIP and overflight/landing permits. If it disagrees with an official source, the official source wins.</span>
+  </div>
+
+  <div class="modes">
+    <button id="mSimple" class="active" onclick="setMode('simple')">Relations check</button>
+    <button id="mAdv" onclick="setMode('advanced')">Diversion checker</button>
+  </div>
+
+  <!-- SIMPLE -->
+  <div id="panelSimple">
+    <div class="card">
+      <div class="row">
+        <div class="field"><label>First country</label><select id="sA"></select></div>
+        <div class="field"><label>Second country</label><select id="sB"></select></div>
+      </div>
+      <div class="field">
+        <label>How much detail?</label>
+        <div class="detail-seg" id="detailSeg">
+          <button class="active" data-lvl="1" onclick="setLevel(1)">Cockpit<small>one line</small></button>
+          <button data-lvl="2" onclick="setLevel(2)">Brief<small>+ context</small></button>
+          <button data-lvl="3" onclick="setLevel(3)">Full<small>+ history</small></button>
+        </div>
+      </div>
+      <button class="go" onclick="runSimple()">Check relations</button>
+      <div class="legend">
+        <span><i style="background:var(--green)"></i>OK / functional</span>
+        <span><i style="background:var(--amber)"></i>Tension — caution</span>
+        <span><i style="background:var(--red)"></i>Hostile / closed</span>
+      </div>
+    </div>
+    <div id="simpleOut"></div>
+  </div>
+
+  <!-- ADVANCED -->
+  <div id="panelAdv" style="display:none">
+    <div class="card">
+      <p class="muted" style="margin-top:0">
+        Type an <b>ICAO code</b> (e.g. <code>LTFE</code>) or pick a country. Example:
+        <code>LTFE→EGKK</code>, div. <code>BKPR</code>, <code>G-</code>reg = Bodrum→Gatwick, diverting to Pristina, UK-registered.
+      </p>
+      <div class="row">
+        <div class="field">
+          <label>Origin</label>
+          <input class="code" id="cOrigin" list="icaoList" placeholder="ICAO e.g. LTFE" oninput="resolveICAO('Origin')">
+          <select id="aOrigin" onchange="onSelect('Origin')"></select>
+          <div class="resolved" id="iOrigin"></div>
+        </div>
+        <div class="field">
+          <label>Destination</label>
+          <input class="code" id="cDest" list="icaoList" placeholder="ICAO e.g. EGKK" oninput="resolveICAO('Dest')">
+          <select id="aDest" onchange="onSelect('Dest')"></select>
+          <div class="resolved" id="iDest"></div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label>Diversion airfield</label>
+          <input class="code" id="cDiv" list="icaoList" placeholder="ICAO e.g. BKPR" oninput="resolveICAO('Div')">
+          <select id="aDiv" onchange="onSelect('Div')"></select>
+          <div class="resolved" id="iDiv"></div>
+        </div>
+        <div class="field">
+          <label>Registration / AOC</label>
+          <input class="code" id="cReg" list="regList" placeholder="Reg mark e.g. G, N, TC" oninput="resolveReg()">
+          <select id="aReg" onchange="onSelect('Reg')"></select>
+          <div class="resolved" id="iReg"></div>
+        </div>
+      </div>
+      <button class="go" onclick="runAdvanced()">Check diversion</button>
+    </div>
+    <div id="advOut"></div>
+  </div>
+
+  <datalist id="icaoList"></datalist>
+  <datalist id="regList"></datalist>
+
+  <p class="foot">
+    Planning aid · mid-2026 data snapshot &amp; general historical patterns.
+    Verify everything against live official sources before use.
+  </p>
+</div>
+
+<script>
+/* =========================================================================
+   1. COUNTRY DATA  — defaults assume a stable state, no known restrictions.
+      Only deviations are specified. status = own airspace/internal state.
+   ========================================================================= */
+const C = {
+  "United Kingdom":{}, "Ireland":{}, "France":{}, "Germany":{}, "Netherlands":{},
+  "Belgium":{}, "Luxembourg":{}, "Portugal":{}, "Italy":{}, "Malta":{}, "Switzerland":{},
+  "Austria":{}, "Poland":{}, "Czechia":{}, "Slovakia":{}, "Hungary":{}, "Slovenia":{},
+  "Croatia":{}, "Bosnia & Herzegovina":{}, "Serbia":{}, "Albania":{}, "North Macedonia":{},
+  "Bulgaria":{}, "Romania":{}, "Greece":{}, "Spain":{}, "Denmark":{}, "Norway":{},
+  "Sweden":{}, "Finland":{}, "Iceland":{}, "Estonia":{}, "Latvia":{}, "Lithuania":{},
+  "Moldova":{}, "Cyprus":{note:"Divided island; the Republic controls the south."},
+  "Gibraltar (UK)":{note:"British Overseas Territory; sovereignty disputed by Spain."},
+
+  "Northern Cyprus":{status:"amber", entity:{recognisedBy:"Turkey only"},
+    note:"Self-declared TRNC. Ercan (LCEN) is not an ICAO-recognised international aerodrome; access effectively only via Turkey."},
+  "Kosovo":{status:"amber",
+    entity:{recognisedBy:"~100 states — NOT Serbia, Russia, China or 5 EU members (ES, GR, CY, RO, SK)"},
+    note:"Pristina (BKPR) operates normally for recognising states; airspace run by HungaroControl."},
+  "Turkey":{}, "Georgia":{note:"Abkhazia & South Ossetia are Russian-occupied — avoid those FIR pockets."},
+  "Armenia":{}, "Azerbaijan":{},
+
+  "Ukraine":{status:"red", conflict:"Full-scale war. Airspace CLOSED to civil traffic (UKR NOTAM).",
+    note:"Not a viable diversion under any circumstances."},
+  "Russia":{status:"red", airspace:"Closed to UK/EU/US/Canada operators (and vice-versa) since 2022 sanctions.",
+    crewVisa:"Russian crew/transit visa required; sanctions complicate handling, fuel & insurance.",
+    note:"Overflight of western Russia and conflict-adjacent zones carries risk."},
+  "Belarus":{status:"amber", airspace:"EU carriers banned / avoid Belarusian airspace since 2021; sanctions."},
+
+  "Israel":{status:"amber", airspace:"Regional conflict risk; airspace subject to sudden closure (NOTAM).",
+    note:"Israeli-registered/operated aircraft are unwelcome or barred across much of the region."},
+  "Lebanon":{status:"amber", conflict:"Periodic conflict with Israel; instability.",
+    passportBar:"Israeli passport holders barred."},
+  "Syria":{status:"red", conflict:"Post-civil-war instability; sanctions; minimal services.",
+    passportBar:"Israeli passport holders barred."},
+  "Jordan":{}, "Egypt":{},
+  "Saudi Arabia":{crewVisa:"Strict entry; crew nightstop needs sponsor/handler arrangement.",
+    passportBar:"No relations with Israel; Israeli passport holders refused."},
+  "United Arab Emirates":{}, "Qatar":{}, "Bahrain":{}, "Oman":{},
+  "Kuwait":{passportBar:"Israeli passport holders barred."},
+  "Iran":{status:"amber", airspace:"Sanctions; elevated regional risk & occasional closures (NOTAM).",
+    crewVisa:"Visa required; Western operators face handling/sanctions friction.",
+    passportBar:"Israeli passport holders barred; Israeli-linked aircraft barred."},
+  "Iraq":{status:"amber", conflict:"Residual security risk; some airspace advisories.",
+    passportBar:"Israeli passport holders barred."},
+  "Yemen":{status:"red", conflict:"Civil war; airspace hazardous / largely closed (Sanaa).",
+    passportBar:"Israeli passport holders barred."},
+
+  "Morocco":{note:"Western Sahara sovereignty disputed."},
+  "Algeria":{passportBar:"Israeli passport holders barred."},
+  "Tunisia":{}, "Western Sahara":{status:"amber", note:"Disputed territory administered by Morocco."},
+  "Libya":{status:"red", conflict:"Divided government; contested airspace — avoid.",
+    passportBar:"Israeli passport holders barred."},
+  "Sudan":{status:"red", conflict:"Civil war since Apr-2023; airspace effectively CLOSED."},
+  "Ethiopia":{status:"amber", conflict:"Recurring internal conflict; check regional NOTAMs."},
+  "Eritrea":{status:"amber"}, "Somalia":{status:"amber",
+    conflict:"Security risk (Al-Shabaab). Somaliland is de-facto separate & unrecognised."},
+  "Kenya":{}, "Tanzania":{}, "Uganda":{}, "Rwanda":{}, "Nigeria":{crewVisa:"Crew visa/handling needed for nightstop."},
+  "Ghana":{}, "Senegal":{}, "Ivory Coast":{}, "South Africa":{}, "Angola":{}, "Mozambique":{},
+  "Zambia":{}, "Zimbabwe":{}, "Botswana":{}, "Namibia":{}, "DR Congo":{status:"amber", conflict:"Instability in the east."},
+  "Cameroon":{}, "Chad":{status:"amber"}, "Mali":{status:"amber", conflict:"Coup-era instability; northern security risk."},
+  "Niger":{status:"amber"}, "Burkina Faso":{status:"amber"},
+
+  "India":{crewVisa:"Crew visa required for unscheduled nightstop."},
+  "Pakistan":{passportBar:"Israeli passport holders barred."},
+  "Afghanistan":{status:"red", airspace:"Uncontrolled above certain levels; Taliban-administered — avoid.",
+    passportBar:"Israeli passport holders barred."},
+  "Sri Lanka":{}, "Bangladesh":{passportBar:"Israeli passport holders barred."},
+  "Nepal":{}, "Maldives":{}, "Bhutan":{},
+  "China":{crewVisa:"Crew visa / landing permit required; unscheduled entry difficult."},
+  "Taiwan":{status:"amber", entity:{recognisedBy:"~12 states; most operate an unofficial 'one-China' relationship"},
+    note:"Operationally normal; PRC tensions can affect the strait/ADIZ."},
+  "Hong Kong":{}, "Macau":{}, "Japan":{}, "South Korea":{},
+  "North Korea":{status:"red", airspace:"Pyongyang FIR avoided by virtually all operators; sanctions; unpredictable.",
+    passportBar:"Effectively closed to Western crews."},
+  "Mongolia":{}, "Thailand":{}, "Vietnam":{}, "Cambodia":{}, "Laos":{},
+  "Myanmar":{status:"red", conflict:"Civil war since the 2021 coup; large areas contested."},
+  "Malaysia":{passportBar:"Israeli passport holders barred; Israeli aircraft not permitted."},
+  "Singapore":{}, "Indonesia":{passportBar:"No relations with Israel; Israeli passport holders refused."},
+  "Brunei":{}, "Philippines":{}, "Timor-Leste":{},
+  "Kazakhstan":{}, "Uzbekistan":{}, "Turkmenistan":{}, "Kyrgyzstan":{}, "Tajikistan":{},
+
+  "Australia":{}, "New Zealand":{}, "Fiji":{}, "Papua New Guinea":{},
+  "United States":{crewVisa:"Operating crew need a C-1/D visa. ESTA/VWP is NOT valid for working crew — an unscheduled nightstop without C-1/D is a real problem."},
+  "Canada":{}, "Mexico":{}, "Guatemala":{}, "Honduras":{}, "El Salvador":{}, "Nicaragua":{},
+  "Costa Rica":{}, "Panama":{}, "Cuba":{note:"US sanctions affect US-operator handling."},
+  "Dominican Republic":{}, "Jamaica":{}, "Bahamas":{}, "Trinidad & Tobago":{}, "Bermuda":{},
+  "Haiti":{status:"red", conflict:"Gang violence & collapse of order; Port-au-Prince unsafe."},
+  "Greenland":{}, "Palestine":{status:"amber", note:"Limited recognition; airspace under Israeli control."},
+
+  "Brazil":{}, "Argentina":{}, "Chile":{}, "Peru":{}, "Ecuador":{}, "Bolivia":{}, "Paraguay":{},
+  "Uruguay":{}, "Colombia":{}, "Guyana":{}, "Suriname":{},
+  "Venezuela":{status:"amber", conflict:"Political instability; strained US/regional relations; sanctions."},
+  "Falkland Islands":{status:"amber", note:"UK territory claimed by Argentina."}
+};
+
+/* =========================================================================
+   2. BILATERAL RELATIONS  — key = names sorted & joined by '|'.
+   lvl green|amber|red ; l1 cockpit ; l2 brief ; l3 full ; pax ; crew (opt)
+   ========================================================================= */
+const REL = {
+  "Greece|Turkey":{lvl:"amber",
+    l1:"Historic rivals but NATO allies. Overflight & diversion normally fine. No passenger restrictions.",
+    l2:"Deep-rooted tension — Cyprus, Aegean boundaries, airspace claims, migration — but active dialogue and huge mutual air traffic. A diversion either way is routine.",
+    l3:"Enmity traces to Ottoman rule and Greek independence in the 1820s. Modern flashpoints: the 1974 Turkish invasion of Cyprus (the island is still divided along the UN Green Line); the unresolved dispute over Aegean territorial waters and continental-shelf rights; and the airspace clash — Greece claims 10 nm of national airspace beyond its 6 nm territorial sea, which Turkey rejects, producing routine military intercepts. The 1996 Imia/Kardak islet crisis brought the two to the brink of war. Yet they remain NATO allies, trade heavily and exchange millions of tourists. For civil aviation, diversions and overflight are benign and commonplace."},
+  "Ireland|United Kingdom":{lvl:"green",
+    l1:"Close neighbours; Common Travel Area. Diversion trivial, no restrictions.",
+    l2:"A once-troubled relationship now very close. The Common Travel Area lets British and Irish citizens move and work freely. Air operations are seamless.",
+    l3:"Centuries of contested British rule ended with Irish independence in 1922 and the partition of the island. 'The Troubles' (late 1960s–1998) brought three decades of conflict in Northern Ireland, ended by the 1998 Good Friday Agreement. Relations today are warm and deeply integrated; the post-Brexit Northern Ireland Protocol / Windsor Framework remains politically sensitive over trade but has no bearing on flight operations. Entirely benign for diversions."},
+  "Armenia|Azerbaijan":{lvl:"red",
+    l1:"HOSTILE. Closed border, no relations. An aircraft of one is unwelcome in the other.",
+    l2:"Two wars over Nagorno-Karabakh. Border and airspace are effectively closed between them; do not plan a diversion across the divide, and an aircraft registered in one should not divert into the other.",
+    l3:"Conflict over the Armenian-populated enclave of Nagorno-Karabakh erupted as the USSR collapsed (1988–94), reignited in the 2020 44-day war, and ended in 2023 when Azerbaijan retook the territory in full, triggering an exodus of its Armenian population. No diplomatic relations; the land border has been shut since the 1990s. A fragile peace process exists but the divide remains hard-closed."},
+  "Armenia|Turkey":{lvl:"red",
+    l1:"Closed land border, no diplomatic relations. Airspace has reopened at times — verify.",
+    l2:"Turkey shut its border with Armenia in 1993 in solidarity with Azerbaijan; there are no formal relations. Overflight has periodically resumed — check current airspace status before relying on it.",
+    l3:"The rupture is compounded by the deeply contested legacy of the 1915 Armenian Genocide, which Turkey does not recognise as such, and by Turkey's close alignment with Azerbaijan. Normalisation talks recur (special envoys were appointed in the 2020s) and direct flights have resumed at points, but the land border stays closed."},
+  "India|Pakistan":{lvl:"amber",
+    l1:"Hostile neighbours. Pakistan has closed airspace to India before — check NOTAMs.",
+    l2:"Repeated wars and periodic crises over Kashmir. Cross-border airspace closures happen with little notice; a diversion into the 'other' country is legally possible but sensitive and will draw scrutiny.",
+    l3:"Partition in 1947 triggered mass violence and displacement. Three wars followed (1947, 1965, 1971 — the last creating Bangladesh) plus the 1999 Kargil conflict. The disputed Kashmir region drives recurring crises; both states are nuclear-armed. Pakistan fully closed its airspace to Indian traffic in 2019 for months. Cross-border and Pakistani-FIR restrictions are entirely current-NOTAM dependent."},
+  "India|China":{lvl:"amber",
+    l1:"Rivals with a disputed, sometimes deadly border. Air ops normal; watch the political weather.",
+    l2:"The world's two most populous states are strategic competitors with an unresolved Himalayan border that has seen fatal clashes. Civil aviation is unaffected day-to-day.",
+    l3:"They fought a brief war in 1962 over the Himalayan frontier, still undefined as the 'Line of Actual Control'. Deadly hand-to-hand clashes occurred in the Galwan Valley in 2020. Competition extends to the Indian Ocean and South Asia. Despite the rivalry, direct commercial ties and overflight are normal."},
+  "Russia|Ukraine":{lvl:"red",
+    l1:"WAR. Both airspaces closed/hazardous. No diversions into either.",
+    l2:"Full-scale war since Feb-2022. Ukrainian airspace is closed; western Russian airspace is high-risk and sanctioned. Neither is a viable diversion.",
+    l3:"After the 2014 annexation of Crimea and the Donbas conflict, Russia launched a full-scale invasion in February 2022. Civil aviation avoids the entire Ukrainian FIR and conflict-adjacent Russian airspace; the war also closed a major Eurasian overflight corridor, lengthening Europe–Asia routings."},
+  "Russia|United Kingdom":{lvl:"red",
+    l1:"Mutual airspace BAN. UK-reg aircraft cannot use Russian airspace, and vice-versa.",
+    l2:"Since the 2022 sanctions, Russia and the UK have banned each other's carriers and aircraft. A UK-registered aircraft cannot legally divert into Russia.",
+    l3:"Part of the broad Western response to the invasion of Ukraine. The same mutual ban applies between Russia and the EU, US, Canada, Australia and others. Leased or Western-registered aircraft face impound risk inside Russia; Western insurers and lessors will not cover Russian operations."},
+  "Russia|Georgia":{lvl:"red",
+    l1:"No diplomatic relations since the 2008 war. Occupied regions — treat with care.",
+    l2:"Russia and Georgia severed relations after their 2008 war; Russia recognises the breakaway regions of Abkhazia and South Ossetia. Direct flights have resumed at points but relations are hostile.",
+    l3:"The five-day war of August 2008 followed years of tension over the Russian-backed separatist regions of Abkhazia and South Ossetia, which Russia recognised as independent afterwards — a status almost no other state accepts. Diplomatic relations remain severed, though Russia lifted a flight ban in 2023. Avoid the occupied FIR pockets."},
+  "Serbia|Kosovo":{lvl:"red",
+    l1:"Serbia does NOT recognise Kosovo. Sensitive; note who runs the airspace & permits.",
+    l2:"Serbia rejects Kosovo's 2008 independence. Kosovo's airspace is managed by HungaroControl; direct Serbia–Kosovo movements are politically fraught. A Kosovo diversion is fine for recognising states.",
+    l3:"After the 1998–99 war and NATO's intervention, Kosovo declared independence in 2008, now recognised by around 100 states but not by Serbia — nor Russia, China or five EU members. Periodic tension flares in the Serb-majority north around Mitrovica. Operationally, Pristina functions normally for operators from recognising states."},
+  "Cyprus|Turkey":{lvl:"red",
+    l1:"Turkey does not recognise the Republic of Cyprus & occupies the north. Sensitive.",
+    l2:"Turkey is the only state that recognises the breakaway north ('TRNC') and does not recognise the Republic of Cyprus government. Republic-of-Cyprus airports operate normally for everyone else.",
+    l3:"Following inter-communal violence, Turkey invaded the north in 1974 and the island has been divided ever since along the UN buffer zone, with Nicosia the last divided capital in Europe. Turkey keeps troops in the north and recognises only the self-declared 'TRNC'. Reunification talks have repeatedly failed. The Republic of Cyprus (south) is an EU member and a normal, busy diversion field."},
+  "Gibraltar (UK)|Spain":{lvl:"amber",
+    l1:"Sovereignty dispute. Historic passenger-disembark restriction if a Gib flight diverts to Spain.",
+    l2:"Spain contests British sovereignty over Gibraltar. Historically, when a Gibraltar-bound or -originating flight diverted into Spain, passengers faced restrictions on disembarking and continuing overland. Post-Brexit arrangements have eased this — treat as sensitive and confirm current status.",
+    l3:"Gibraltar was ceded to Britain in 1713 under the Treaty of Utrecht; Spain has long sought its return and closed the land frontier entirely from 1969 to 1985. The airport sits on the disputed isthmus. For years Spain refused to treat Gibraltar as a normal destination, which is why a diverted LGW–GIB service landing on Spanish soil could leave passengers unable to continue freely. Post-Brexit talks aim to normalise the border and airport, but arrangements should be verified.",
+    pax:"Historically, passengers off a Gibraltar-bound/originating flight diverted into Spain could not freely disembark or continue overland (Spain would not treat them as arrivals from Gibraltar). Post-Brexit arrangements have eased this — confirm current status with Ops, but plan for possible restrictions on disembarkation and onward transport."},
+  "Algeria|Morocco":{lvl:"red",
+    l1:"HOSTILE. Border & airspace CLOSED to each other. No cross-diversion.",
+    l2:"Algeria closed its airspace to Morocco in 2021 and cut relations; the land border has been shut since 1994. Do not plan a diversion across the divide.",
+    l3:"The rivalry is rooted in the Western Sahara conflict — Algeria backs the Polisario Front against Moroccan control of the territory. Relations were severed in 2021, followed by a mutual airspace ban. A Moroccan-registered aircraft should not plan Algeria as a diversion, and vice-versa."},
+  "China|Taiwan":{lvl:"amber",
+    l1:"PRC claims Taiwan. Strait/ADIZ tension can flare — otherwise operationally normal.",
+    l2:"Beijing regards Taiwan as a province and objects to any recognition of its sovereignty. There are no direct political relations and recurring military pressure around the strait, but Taipei operates as a normal international airport.",
+    l3:"The Republic of China government relocated to Taiwan in 1949 after losing the civil war; the PRC has never renounced the use of force to achieve unification. Most states keep unofficial ties under a 'one-China' policy. Large-scale PLA drills and ADIZ incursions are routine. Airline operations are normal, but a cross-strait crisis could restrict airspace at short notice."},
+  "China|Japan":{lvl:"amber",
+    l1:"Historic friction & island dispute, but major trade partners. Ops normal.",
+    l2:"Rivalry shaped by wartime history and a territorial dispute over the Senkaku/Diaoyu islands, yet the two are deeply linked economically. No impact on civil diversions.",
+    l3:"Tension stems from Japan's occupation of China before and during WWII and from the disputed uninhabited Senkaku/Diaoyu islands in the East China Sea, where coast-guard stand-offs occur. Despite periodic flare-ups and boycotts, China and Japan are among each other's largest trading partners and civil aviation is unaffected."},
+  "Japan|South Korea":{lvl:"green",
+    l1:"Historic grievances but US-aligned partners. Fully benign for ops.",
+    l2:"Colonial-era history causes periodic diplomatic friction, but both are US allies and cooperate closely. No operational restrictions.",
+    l3:"Friction centres on Japan's 1910–45 colonial rule of Korea, including forced-labour and 'comfort women' disputes that periodically chill relations and trade. Both are democracies and US treaty allies, and security cooperation has deepened. Civil aviation between them is routine."},
+  "North Korea|South Korea":{lvl:"red",
+    l1:"Technically still at war. DPRK airspace avoided by all. No diversion into the North.",
+    l2:"No peace treaty since 1953 — only an armistice. The DMZ is among the most militarised borders on earth. North Korean airspace is effectively closed to Western traffic.",
+    l3:"The 1950–53 Korean War ended in an armistice, not a peace treaty, leaving the peninsula divided at the DMZ. Relations swing between diplomacy and crisis; the North's nuclear and missile programmes drive heavy sanctions. South Korea is a normal, high-capacity diversion; the North is not an option."},
+  "Israel|Lebanon":{lvl:"red",
+    l1:"Hostile / at war. No relations. Israeli-linked aircraft must NOT divert to Lebanon.",
+    l2:"No diplomatic relations and recurrent armed conflict. An Israeli-registered or -operated aircraft, or crew holding Israeli passports, must not enter Lebanon.",
+    l3:"A state of war has existed since 1948, with major conflicts in 1982 and 2006 and recurring escalation involving Hezbollah in southern Lebanon. There are no relations; Lebanon bars Israeli nationals and Israeli-linked aircraft entirely."},
+  "Iran|Israel":{lvl:"red",
+    l1:"Bitter enemies. Direct military exchanges have occurred. Mutually barred.",
+    l2:"Open hostility, including direct strikes. Neither will accept the other's aircraft or nationals, and regional airspace can close with little notice.",
+    l3:"Since Iran's 1979 revolution the two have been avowed adversaries, fighting through proxies across the region and, from 2024, exchanging direct missile and air strikes. Beyond the diplomatic bar, escalations trigger sudden, wide airspace closures across the Middle East — a live NOTAM issue as much as a political one."},
+  "Iran|United States":{lvl:"red",
+    l1:"Hostile; no relations since 1980. Sanctions & regional risk. US-linked ops barred.",
+    l2:"No diplomatic relations since 1980; comprehensive US sanctions. US-registered/operated aircraft cannot operate to Iran and the wider region carries elevated risk.",
+    l3:"Relations collapsed with the 1979 revolution and the US-embassy hostage crisis. Decades of sanctions, the disputed nuclear programme, and incidents such as the 2020 killing of General Soleimani keep the relationship hostile. US carriers and aircraft are barred from Iran; regional airspace is sensitive to escalation."},
+  "Saudi Arabia|Iran":{lvl:"amber",
+    l1:"Rivals, but relations restored in 2023. Broadly workable — stay alert to flare-ups.",
+    l2:"A long regional rivalry eased by a 2023 China-brokered restoration of diplomatic ties. Functional today, but watch the wider security picture.",
+    l3:"The competition for Gulf and Islamic leadership — overlaid with the Sunni/Shia divide — played out in proxy conflicts in Yemen, Syria and Lebanon. Riyadh cut ties in 2016 after its embassy in Tehran was stormed; the two restored relations in a surprise 2023 agreement mediated by China. Not a barrier to civil diversions today."},
+  "Qatar|Saudi Arabia":{lvl:"green",
+    l1:"2017–21 blockade is over; relations & airspace fully restored.",
+    l2:"Saudi Arabia and neighbours blockaded Qatar from 2017 to 2021, closing airspace; the dispute was resolved and normal operations have fully resumed.",
+    l3:"In 2017 Saudi Arabia, the UAE, Bahrain and Egypt cut ties and closed air, land and sea links with Qatar over allegations it supported extremist groups and was too close to Iran — forcing Qatar Airways onto long detours for over three years. The 2021 Al-Ula agreement ended the blockade and reopened airspace. Relations are normalised."},
+  "Egypt|Israel":{lvl:"amber",
+    l1:"At peace since 1979 ('cold peace'). Ops normal; regionally sensitive.",
+    l2:"Egypt was the first Arab state to make peace with Israel (1979). Relations are correct but cool. No operational bar, though the Sinai and Gaza periphery are security-sensitive.",
+    l3:"After four wars, Egypt and Israel signed the 1979 peace treaty following the Camp David Accords, and Egypt regained Sinai. The 'cold peace' endures — security and gas cooperation continue while popular sentiment stays hostile. Civil operations are normal; the northern Sinai and Gaza frontier carry security considerations."},
+  "Israel|Jordan":{lvl:"amber",
+    l1:"At peace since 1994. Ops normal; periodically strained.",
+    l2:"Jordan and Israel have a 1994 peace treaty and quiet security/water cooperation, though public opinion and Gaza crises periodically strain ties. No operational bar.",
+    l3:"Jordan became the second Arab state to normalise with Israel, via the 1994 Wadi Araba treaty. The relationship is pragmatic — sharing water and security interests — but repeatedly tested by events in Jerusalem and Gaza. Both are normal diversion options."},
+  "Israel|United Arab Emirates":{lvl:"amber",
+    l1:"Normalised in 2020 (Abraham Accords). Direct flights operate.",
+    l2:"The UAE established relations with Israel under the 2020 Abraham Accords; direct flights and trade now operate, subject to regional escalations.",
+    l3:"The 2020 Abraham Accords, brokered by the US, saw the UAE (and Bahrain, later Morocco) normalise relations with Israel — a marked break with the prior Arab consensus. Direct air links, tourism and business have grown quickly, though ties can cool during Gaza escalations."},
+  "Venezuela|United States":{lvl:"red",
+    l1:"No relations; heavy sanctions. US-linked operations restricted.",
+    l2:"The US and Venezuela have no formal diplomatic relations and Washington maintains broad sanctions. US operators face restrictions; the FAA has warned on Venezuelan airspace.",
+    l3:"Relations deteriorated through the Chávez and Maduro eras and were cut in 2019 when the US recognised opposition leader Juan Guaidó. Sanctions target the oil sector and government. The FAA has issued warnings over the Maiquetía FIR. Operations are heavily constrained for US-linked aircraft."},
+  "Colombia|Venezuela":{lvl:"amber",
+    l1:"Long-strained but relations restored in 2022. Border-region caution.",
+    l2:"Relations were severed for years and restored in 2022. The shared border sees smuggling, irregular armed groups and migration pressure — treat the frontier region with caution.",
+    l3:"Ideological friction, Venezuela's economic collapse and a mass refugee outflow into Colombia drove relations to a break in 2019. The 2022 election of Colombia's Gustavo Petro brought restoration of ties and reopening of the border. The frontier remains a security-sensitive zone."}
+};
+
+/* =========================================================================
+   3. ICAO location-indicator prefixes  →  country (also seeds the list).
+   ========================================================================= */
+const ICAO2 = {
+  EB:"Belgium", ED:"Germany", ET:"Germany", EE:"Estonia", EF:"Finland", EG:"United Kingdom",
+  EH:"Netherlands", EI:"Ireland", EK:"Denmark", EL:"Luxembourg", EN:"Norway", EP:"Poland",
+  ES:"Sweden", EV:"Latvia", EY:"Lithuania",
+  LA:"Albania", LB:"Bulgaria", LC:"Cyprus", LD:"Croatia", LE:"Spain", LF:"France", LG:"Greece",
+  LH:"Hungary", LI:"Italy", LJ:"Slovenia", LK:"Czechia", LL:"Israel", LM:"Malta", LO:"Austria",
+  LP:"Portugal", LQ:"Bosnia & Herzegovina", LR:"Romania", LS:"Switzerland", LT:"Turkey",
+  LU:"Moldova", LV:"Palestine", LW:"North Macedonia", LX:"Gibraltar (UK)", LY:"Serbia", LZ:"Slovakia",
+  BG:"Greenland", BI:"Iceland", BK:"Kosovo",
+  DA:"Algeria", DB:"Benin", DF:"Burkina Faso", DG:"Ghana", DI:"Ivory Coast", DN:"Nigeria",
+  DR:"Niger", DT:"Tunisia", DX:"Togo",
+  FA:"South Africa", FB:"Botswana", FC:"Congo", FD:"Eswatini", FE:"Chad", FG:"Equatorial Guinea",
+  FH:"Saint Helena", FI:"Mauritius", FK:"Cameroon", FL:"Zambia", FM:"Madagascar", FN:"Angola",
+  FO:"Gabon", FP:"Sao Tome", FQ:"Mozambique", FS:"Seychelles", FT:"Chad", FV:"Zimbabwe",
+  FW:"Malawi", FX:"Lesotho", FY:"Namibia", FZ:"DR Congo",
+  GA:"Mali", GB:"Gambia", GC:"Spain", GE:"Spain", GF:"Sierra Leone", GG:"Guinea-Bissau",
+  GL:"Liberia", GM:"Morocco", GO:"Senegal", GQ:"Mauritania", GS:"Western Sahara", GU:"Guinea", GV:"Cape Verde",
+  HA:"Ethiopia", HB:"Burundi", HC:"Somalia", HD:"Djibouti", HE:"Egypt", HH:"Eritrea", HK:"Kenya",
+  HL:"Libya", HR:"Rwanda", HS:"Sudan", HT:"Tanzania", HU:"Uganda",
+  MB:"Bahamas", MD:"Dominican Republic", MG:"Guatemala", MH:"Honduras", MK:"Jamaica", MM:"Mexico",
+  MN:"Nicaragua", MP:"Panama", MR:"Costa Rica", MS:"El Salvador", MT:"Haiti", MU:"Cuba",
+  MW:"Cuba", MY:"Bahamas", MZ:"Belize",
+  NF:"Fiji", NS:"Samoa", NT:"France", NV:"Vanuatu", NW:"France", NZ:"New Zealand", NC:"New Zealand",
+  OA:"Afghanistan", OB:"Bahrain", OE:"Saudi Arabia", OI:"Iran", OJ:"Jordan", OK:"Kuwait", OL:"Lebanon",
+  OM:"United Arab Emirates", OO:"Oman", OP:"Pakistan", OR:"Iraq", OS:"Syria", OT:"Qatar", OY:"Yemen",
+  PA:"United States", PH:"United States", PG:"United States",
+  RC:"Taiwan", RJ:"Japan", RK:"South Korea", RO:"Japan", RP:"Philippines",
+  SA:"Argentina", SB:"Brazil", SC:"Chile", SD:"Brazil", SE:"Ecuador", SF:"Falkland Islands",
+  SG:"Paraguay", SI:"Brazil", SJ:"Brazil", SK:"Colombia", SL:"Bolivia", SM:"Suriname", SN:"Brazil",
+  SO:"France", SP:"Peru", SS:"Brazil", SU:"Uruguay", SV:"Venezuela", SW:"Brazil", SY:"Guyana",
+  TA:"Antigua & Barbuda", TB:"Barbados", TF:"France", TG:"Grenada", TI:"United States", TJ:"United States",
+  TK:"Saint Kitts & Nevis", TL:"Saint Lucia", TN:"Netherlands", TT:"Trinidad & Tobago", TU:"United Kingdom",
+  TV:"Saint Vincent", TX:"Bermuda",
+  UA:"Kazakhstan", UB:"Azerbaijan", UC:"Kyrgyzstan", UD:"Armenia", UG:"Georgia", UK:"Ukraine",
+  UM:"Belarus", UT:"Uzbekistan",
+  VA:"India", VE:"India", VI:"India", VO:"India", VC:"Sri Lanka", VD:"Cambodia", VG:"Bangladesh",
+  VH:"Hong Kong", VL:"Laos", VM:"Macau", VN:"Nepal", VQ:"Bhutan", VR:"Maldives", VT:"Thailand",
+  VV:"Vietnam", VY:"Myanmar",
+  WA:"Indonesia", WI:"Indonesia", WR:"Indonesia", WQ:"Indonesia", WB:"Malaysia", WM:"Malaysia",
+  WS:"Singapore", WP:"Timor-Leste",
+  ZK:"North Korea", ZM:"Mongolia"
+};
+const ICAO1 = { C:"Canada", K:"United States", Y:"Australia", Z:"China", U:"Russia" };
+/* exact-code overrides where the prefix hides a special case */
+const ICAO_EXACT = { LCEN:"Northern Cyprus", LCGK:"Northern Cyprus" };
+
+/* Named airports for display (code → "City / name"). */
+const AIRPORTS = {
+  EGKK:"London Gatwick", EGLL:"London Heathrow", EGSS:"London Stansted", EGGW:"London Luton",
+  EGCC:"Manchester", EGPH:"Edinburgh", EGPF:"Glasgow", EGBB:"Birmingham", EIDW:"Dublin",
+  LFPG:"Paris CDG", LFPO:"Paris Orly", LFMN:"Nice", LFML:"Marseille", LFBO:"Toulouse", LFLL:"Lyon",
+  EHAM:"Amsterdam Schiphol", EBBR:"Brussels", EBCI:"Brussels Charleroi", EDDF:"Frankfurt",
+  EDDM:"Munich", EDDB:"Berlin", EDDL:"Düsseldorf", EDDH:"Hamburg", EDDK:"Cologne",
+  LSZH:"Zürich", LSGG:"Geneva", LOWW:"Vienna", LOWI:"Innsbruck", LKPR:"Prague", EPWA:"Warsaw",
+  LHBP:"Budapest", LIRF:"Rome Fiumicino", LIMC:"Milan Malpensa", LIME:"Milan Bergamo",
+  LIPZ:"Venice", LICC:"Catania", LICJ:"Palermo", LIEO:"Olbia",
+  LEMD:"Madrid", LEBL:"Barcelona", LEPA:"Palma", LEMG:"Málaga", LEAL:"Alicante", LEIB:"Ibiza",
+  GCLP:"Gran Canaria", GCTS:"Tenerife South", GCXO:"Tenerife North", LPPT:"Lisbon", LPPR:"Porto",
+  LPFR:"Faro", LXGB:"Gibraltar", EKCH:"Copenhagen", ENGM:"Oslo", ESSA:"Stockholm Arlanda",
+  EFHK:"Helsinki", BIKF:"Reykjavík Keflavík",
+  LGAV:"Athens", LGTS:"Thessaloniki", LGIR:"Heraklion", LGRP:"Rhodes", LGKO:"Kos", LGSR:"Santorini",
+  LTFM:"Istanbul", LTFJ:"Istanbul Sabiha Gökçen", LTAI:"Antalya", LTAC:"Ankara", LTFE:"Bodrum–Milas",
+  LCLK:"Larnaca", LCPH:"Paphos", LCEN:"Ercan (N. Cyprus)", LMML:"Malta",
+  LDZA:"Zagreb", LDSP:"Split", LDDU:"Dubrovnik", LYBE:"Belgrade", BKPR:"Pristina", LYPG:"Podgorica",
+  LWSK:"Skopje", LATI:"Tirana", LQSA:"Sarajevo", LBSF:"Sofia", LROP:"Bucharest", LUKK:"Chișinău",
+  UKBB:"Kyiv Boryspil",
+  LLBG:"Tel Aviv Ben Gurion", OLBA:"Beirut", OJAI:"Amman", OSDI:"Damascus", HECA:"Cairo",
+  HEGN:"Hurghada", HESH:"Sharm el-Sheikh", OMDB:"Dubai", OMAA:"Abu Dhabi", OTHH:"Doha",
+  OBBI:"Bahrain", OKBK:"Kuwait", OEJN:"Jeddah", OERK:"Riyadh", OOMS:"Muscat", OIIE:"Tehran",
+  ORBI:"Baghdad", OYSN:"Sanaa",
+  GMMN:"Casablanca", GMMX:"Marrakesh", GMME:"Rabat", GMTT:"Tangier", DAAG:"Algiers", DTTA:"Tunis",
+  DTMB:"Monastir", HLLT:"Tripoli", HSSS:"Khartoum", HAAB:"Addis Ababa", HKJK:"Nairobi",
+  FAOR:"Johannesburg", FACT:"Cape Town", DNMM:"Lagos", GOBD:"Dakar",
+  KJFK:"New York JFK", KEWR:"Newark", KBOS:"Boston", KIAD:"Washington Dulles", KATL:"Atlanta",
+  KORD:"Chicago O'Hare", KLAX:"Los Angeles", KMIA:"Miami", CYYZ:"Toronto", CYUL:"Montréal",
+  CYVR:"Vancouver", MMMX:"Mexico City", MUHA:"Havana", MDPC:"Punta Cana",
+  VIDP:"Delhi", VABB:"Mumbai", OPKC:"Karachi", OPLA:"Lahore", OAKB:"Kabul", VTBS:"Bangkok",
+  WSSS:"Singapore", WMKK:"Kuala Lumpur", WIII:"Jakarta", VHHH:"Hong Kong", RJTT:"Tokyo Haneda",
+  RJAA:"Tokyo Narita", RKSI:"Seoul Incheon", ZBAA:"Beijing", ZSPD:"Shanghai Pudong",
+  ZGGG:"Guangzhou", RCTP:"Taipei", YSSY:"Sydney", YMML:"Melbourne", NZAA:"Auckland",
+  SBGR:"São Paulo", SAEZ:"Buenos Aires", SCEL:"Santiago", SKBO:"Bogotá", SVMI:"Caracas"
+};
+
+/* Aircraft registration marks → country (longest match wins). */
+const REG = {
+  G:"United Kingdom", M:"United Kingdom", N:"United States", C:"Canada", D:"Germany", F:"France",
+  I:"Italy", EC:"Spain", CS:"Portugal", PH:"Netherlands", OO:"Belgium", LX:"Luxembourg",
+  HB:"Switzerland", OE:"Austria", SE:"Sweden", LN:"Norway", OY:"Denmark", OH:"Finland", TF:"Iceland",
+  EI:"Ireland", SP:"Poland", OK:"Czechia", OM:"Slovakia", HA:"Hungary", YR:"Romania", LZ:"Bulgaria",
+  SX:"Greece", TC:"Turkey", "9H":"Malta", "5B":"Cyprus", YL:"Latvia", ES:"Estonia", LY:"Lithuania",
+  UR:"Ukraine", RA:"Russia", RF:"Russia", "4K":"Azerbaijan", EK:"Armenia", "4L":"Georgia",
+  "4X":"Israel", JY:"Jordan", OD:"Lebanon", YK:"Syria", SU:"Egypt", A6:"United Arab Emirates",
+  A7:"Qatar", A9C:"Bahrain", HZ:"Saudi Arabia", "9K":"Kuwait", A4O:"Oman", EP:"Iran", YI:"Iraq",
+  "7O":"Yemen", TS:"Tunisia", "7T":"Algeria", CN:"Morocco", "5A":"Libya", ST:"Sudan", ET:"Ethiopia",
+  "5Y":"Kenya", ZS:"South Africa", "5N":"Nigeria", VT:"India", AP:"Pakistan", YA:"Afghanistan",
+  "4R":"Sri Lanka", S2:"Bangladesh", B:"China", JA:"Japan", HL:"South Korea", P:"North Korea",
+  HS:"Thailand", XY:"Myanmar", VN:"Vietnam", "9V":"Singapore", "9M":"Malaysia", PK:"Indonesia",
+  V8:"Brunei", VH:"Australia", ZK:"New Zealand", XA:"Mexico", YV:"Venezuela", HK:"Colombia",
+  PP:"Brazil", PR:"Brazil", PT:"Brazil", LV:"Argentina", CC:"Chile", OB:"Peru", HC:"Ecuador",
+  CU:"Cuba", HH:"Haiti"
+};
+
+/* -- ensure every prefix target country exists in C (default = stable) -- */
+[...Object.values(ICAO2), ...Object.values(ICAO1), ...Object.values(REG)].forEach(n=>{ if(!C[n]) C[n]={}; });
+
+/* Countries that mutually ban airspace with Russia/Belarus (2022 sanctions). */
+const WEST = new Set(["United Kingdom","Ireland","France","Germany","Netherlands","Belgium",
+  "Luxembourg","Spain","Portugal","Italy","Malta","Switzerland","Austria","Poland","Czechia",
+  "Slovakia","Hungary","Slovenia","Croatia","Bulgaria","Romania","Greece","Denmark","Norway",
+  "Sweden","Finland","Iceland","Estonia","Latvia","Lithuania","United States","Canada","Australia","New Zealand","Japan"]);
+
+/* ---- helpers ---- */
+function cd(n){ return Object.assign({r:"",status:"green"}, C[n]||{}); }
+function keyPair(a,b){ return [a,b].sort().join("|"); }
+function rel(a,b){ return REL[keyPair(a,b)] || null; }
+const NAMES = Object.keys(C).sort((a,b)=>a.localeCompare(b));
+
+function icaoCountry(code){
+  code=(code||"").toUpperCase().replace(/[^A-Z]/g,"");
+  if(ICAO_EXACT[code]) return ICAO_EXACT[code];
+  if(code.length>=2 && ICAO2[code.slice(0,2)]) return ICAO2[code.slice(0,2)];
+  if(code.length>=1 && ICAO1[code[0]])         return ICAO1[code[0]];
+  return null;
+}
+function regCountry(mark){
+  mark=(mark||"").toUpperCase().replace(/[^A-Z0-9]/g,"");
+  for(let len=Math.min(3,mark.length); len>=1; len--){
+    const k=mark.slice(0,len); if(REG[k]) return REG[k];
+  }
+  return null;
+}
+
+/* ---- populate selects & datalists ---- */
+function fillSelect(sel){ sel.innerHTML = NAMES.map(n=>`<option>${n}</option>`).join(""); }
+["sA","sB","aOrigin","aDest","aDiv","aReg"].forEach(id=>fillSelect(document.getElementById(id)));
+document.getElementById("icaoList").innerHTML =
+  Object.entries(AIRPORTS).map(([c,n])=>`<option value="${c}">${c} — ${n}</option>`).join("");
+document.getElementById("regList").innerHTML =
+  Object.keys(REG).map(k=>`<option value="${k}">${k} — ${REG[k]}</option>`).join("");
+
+const SET={sA:"Greece",sB:"Turkey",aOrigin:"Turkey",aDest:"United Kingdom",aDiv:"Kosovo",aReg:"United Kingdom"};
+for(const id in SET) document.getElementById(id).value=SET[id];
+
+/* ---- theme ---- */
+function toggleTheme(){
+  const cur=document.documentElement.getAttribute("data-theme")==="dark"?"":"dark";
+  document.documentElement.setAttribute("data-theme",cur);
+  document.getElementById("themeBtn").textContent = cur==="dark" ? "☀️ Day" : "🌙 Night";
+}
+
+/* ---- mode / level ---- */
+let MODE="simple", LEVEL=1;
+function setMode(m){
+  if(m==="advanced"){                       // carry the two countries across
+    document.getElementById("aOrigin").value = document.getElementById("sA").value;
+    document.getElementById("aDest").value   = document.getElementById("sB").value;
+    ["Origin","Dest","Div","Reg"].forEach(clearCode);
+    ["Origin","Dest","Div","Reg"].forEach(r=>showResolved(r, document.getElementById("a"+r).value));
+  } else {
+    document.getElementById("sA").value = document.getElementById("aOrigin").value;
+    document.getElementById("sB").value = document.getElementById("aDest").value;
+  }
+  MODE=m;
+  document.getElementById("mSimple").classList.toggle("active",m==="simple");
+  document.getElementById("mAdv").classList.toggle("active",m==="advanced");
+  document.getElementById("panelSimple").style.display = m==="simple"?"":"none";
+  document.getElementById("panelAdv").style.display = m==="advanced"?"":"none";
+  if(m==="simple") runSimple();
+}
+function setLevel(l){
+  LEVEL=l;
+  document.querySelectorAll("#detailSeg button").forEach(b=>b.classList.toggle("active",+b.dataset.lvl===l));
+  if(document.getElementById("simpleOut").innerHTML.trim()) runSimple();
+}
+
+/* ---- advanced field resolution ---- */
+function clearCode(role){ document.getElementById("c"+role).value=""; }
+function showResolved(role, country, airport){
+  const el=document.getElementById("i"+role);
+  if(!country){ el.innerHTML=""; return; }
+  el.innerHTML = airport ? `<b>${airport}</b>, ${country}` : country;
+}
+function resolveICAO(role){
+  const code=document.getElementById("c"+role).value;
+  const country=icaoCountry(code);
+  if(country){
+    document.getElementById("a"+role).value=country;
+    showResolved(role, country, AIRPORTS[code.toUpperCase()]);
+  } else showResolved(role, code.length>=2 ? "Unrecognised code — pick a country below" : "");
+}
+function resolveReg(){
+  const mark=document.getElementById("cReg").value;
+  const country=regCountry(mark);
+  if(country){ document.getElementById("aReg").value=country; showResolved("Reg", country); }
+  else showResolved("Reg", mark.length>=1 ? "Unrecognised mark — pick a country below" : "");
+}
+function onSelect(role){ clearCode(role); showResolved(role, document.getElementById("a"+role).value); }
+
+/* ---- severity ---- */
+const RANK={green:0,amber:1,grey:1,red:2};
+function worse(a,b){ return RANK[a]>=RANK[b]?a:b; }
+const STATUS={green:"No significant hostility",amber:"Tension — proceed with caution",red:"Hostile / restricted"};
+const ICON={green:"✓",amber:"!",red:"✕",grey:"?"};
+
+/* ======================= RELATIONS CHECK ======================= */
+function runSimple(){
+  const a=document.getElementById("sA").value, b=document.getElementById("sB").value;
+  const out=document.getElementById("simpleOut");
+  if(a===b){ out.innerHTML=`<div class="card muted">Pick two different countries.</div>`; return; }
+
+  const r=rel(a,b), da=cd(a), db=cd(b);
+  const lvl = r ? r.lvl : worse(da.status,db.status);
+  const one = r ? r.l1 : defaultLine(a,b,da,db);
+
+  let html = verdict(lvl, `${a} & ${b}`, one, `Relationship overview · detail level ${LEVEL}`);
+
+  if(LEVEL>=2){
+    html += `<div class="card">`;
+    if(r){
+      html += `<div class="hist"><h4>The relationship</h4><p>${r.l2}</p></div>`;
+    } else {
+      html += `<p class="muted">No specific bilateral flashpoint is recorded for this pair — relations are treated as ordinary. The assessment below reflects each country's own status.</p>`;
+    }
+    const sn = stateNotes(a,da)+stateNotes(b,db);
+    if(sn){ html += `<div class="section-h">Country status</div>` + sn; }
+
+    if(LEVEL>=3){
+      if(r){
+        html += `<div class="hist"><h4>Full background</h4><p>${r.l3}</p></div>`;
+        if(r.pax) html += `<div class="section-h">Passenger &amp; crew implications</div>` + f("amber","Passenger restriction", r.pax);
+        if(r.crew) html += f("amber","Crew note", r.crew);
+      } else {
+        html += `<p class="muted" style="margin-top:14px">No detailed historical record is held for this pair in the dataset.</p>`;
+      }
+    }
+    html += `</div>`;
+  }
+  out.innerHTML=html;
+}
+
+function defaultLine(a,b,da,db){
+  const bad=[]; if(da.status!=="green")bad.push(a); if(db.status!=="green")bad.push(b);
+  if(bad.length) return `No specific dispute between them, but note the internal / airspace status of ${bad.join(" & ")} below.`;
+  return "No significant hostility on record — relations treated as ordinary. Verify current airspace & NOTAMs.";
+}
+function stateNotes(name,d){
+  let out="";
+  if(d.conflict) out+=f("red","Conflict / instability — "+name, d.conflict);
+  if(d.airspace) out+=f("amber","Airspace — "+name, d.airspace);
+  if(d.entity)   out+=f("amber","Recognition — "+name, `${name} is not universally recognised. Recognised by: ${d.entity.recognisedBy}. ${d.note||""}`);
+  return out;
+}
+
+/* ======================= DIVERSION CHECKER ======================= */
+function airspaceBan(reg,div){
+  const s=new Set([reg,div]);
+  if(s.has("Russia")  && [...s].some(x=>WEST.has(x))) return "Russia";
+  if(s.has("Belarus") && [...s].some(x=>WEST.has(x))) return "Belarus";
+  return null;
+}
+function runAdvanced(){
+  const origin=v("aOrigin"), dest=v("aDest"), div=v("aDiv"), reg=v("aReg");
+  const D=cd(div);
+  let overall="green", F=[];
+
+  if(D.conflict){ overall=worse(overall,D.status);
+    F.push(f("red","Diversion state in conflict / instability",
+      `${div}: ${D.conflict} It may be unavailable or unsafe as a diversion — confirm the field is open and secure.`)); }
+  else if(D.airspace){ overall=worse(overall,"amber");
+    F.push(f("amber","Diversion airspace status", `${div}: ${D.airspace}`)); }
+  if(D.status==="red" && !D.conflict){ overall=worse(overall,"red");
+    F.push(f("red","Diversion state restricted", `${div} is high-restriction. ${D.note||""}`)); }
+
+  if(D.entity){ overall=worse(overall,"amber");
+    F.push(f("amber","Non-recognised / disputed entity",
+      `${div} is not universally recognised (recognised by: ${D.entity.recognisedBy}). ${D.note||""} Consider legal, insurance, ATC-permit and onward-clearance implications; scheduled access may only be possible via the recognising state.`)); }
+
+  if(reg!==div){
+    const banned=airspaceBan(reg,div);
+    const rr=rel(reg,div);
+    if(banned){ overall="red";
+      F.push(f("red","Aircraft barred — airspace ban",
+        `${reg} and ${div} operate a mutual airspace ban (2022 sanctions). A ${reg}-registered/AOC aircraft cannot legally divert into ${div}, and faces impound and insurance-cover loss.`)); }
+    else if(rr && rr.lvl==="red"){ overall="red";
+      F.push(f("red","Aircraft may be refused / at risk",
+        `Relations between the aircraft's state (${reg}) and the diversion state (${div}) are hostile. ${rr.l1} This ${reg}-registered/AOC aircraft should not plan ${div} as a diversion — expect refusal, and in the worst case impound.`)); }
+    else if(rr && rr.lvl==="amber"){ overall=worse(overall,"amber");
+      F.push(f("amber","Aircraft-state sensitivity",
+        `${reg} ↔ ${div}: ${rr.l1} Landing a ${reg}-registered aircraft is likely workable but sensitive — coordinate via Ops/handler.`)); }
+    if(reg==="Israel" && D.passportBar && /Israel/i.test(D.passportBar)){ overall="red";
+      F.push(f("red","Aircraft nationality barred", `${div} bars Israel-linked entry — an Israel-registered/AOC aircraft cannot divert here.`)); }
+  }
+
+  [["origin",origin],["destination",dest]].forEach(([role,ctry])=>{
+    if(ctry===div) return;
+    const rr=rel(ctry,div);
+    if(rr && rr.pax){ overall=worse(overall,"amber");
+      F.push(f("amber",`Passenger restriction (${role})`, `${ctry} ↔ ${div}: ${rr.pax}`)); }
+    else if(rr && rr.lvl==="red"){ overall=worse(overall,"amber");
+      F.push(f("amber",`Passenger sensitivity (${role})`,
+        `Hostile relations between ${ctry} (${role}) and diversion state ${div} may restrict passenger disembarkation / onward travel. ${rr.l1}`)); }
+  });
+
+  if(D.passportBar){ overall=worse(overall,"amber");
+    F.push(f("amber","Crew passport restriction",
+      `${div}: ${D.passportBar} Screen crew nationalities/passports before committing — critical if an unscheduled nightstop puts crew through immigration.`)); }
+  if(D.crewVisa){ overall=worse(overall,"amber");
+    F.push(f("amber","Crew nightstop / entry", `${div}: ${D.crewVisa}`)); }
+
+  if(F.length===0){
+    F.push(f("green","No known restrictions",
+      `No specific diplomatic, recognition, passenger or crew restriction found for a ${reg}-registered aircraft diverting into ${div} on a ${origin}→${dest} sector. Still verify NOTAMs, permits and handling.`)); }
+
+  const line = `${airportLabel(origin,"cOrigin")} → ${airportLabel(dest,"cDest")}, divert <b>${airportLabel(div,"cDiv")}</b> · ${reg}-registered`;
+  let html = verdict(overall, "Diversion assessment", STATUS[overall], "")
+    + `<div class="card"><div class="section-h">Scenario</div><p class="muted">${line}</p>`
+    + `<div class="section-h">Findings</div>${F.join("")}`
+    + `<p class="muted" style="margin-top:12px">Combines: diversion-field status · aircraft-state relations · passenger relations (origin &amp; destination) · crew passport &amp; nightstop rules. Absence of a flag means "nothing in this dataset", not "cleared".</p></div>`;
+  document.getElementById("advOut").innerHTML=html;
+}
+function airportLabel(country, codeId){
+  const code=(document.getElementById(codeId).value||"").toUpperCase().replace(/[^A-Z]/g,"");
+  if(code.length>=3 && AIRPORTS[code]) return `${code} (${country})`;
+  if(code.length>=3) return `${code} (${country})`;
+  return country;
+}
+
+/* ---- render helpers ---- */
+function v(id){ return document.getElementById(id).value; }
+function verdict(lvl, status, headline, pair){
+  return `<div class="verdict ${lvl}">
+      <div class="icon">${ICON[lvl]}</div>
+      <div>
+        <p class="status">${status} · ${STATUS[lvl].split(' — ')[0]}</p>
+        <p class="headline">${headline}</p>
+        ${pair?`<p class="pair">${pair}</p>`:""}
+      </div>
+    </div>`;
+}
+function f(sev,title,body){
+  const tag = sev==="green"?"OK":sev==="amber"?"Caution":sev==="red"?"Alert":"Info";
+  return `<div class="finding ${sev}"><p class="ftitle"><span class="pill ${sev}">${tag}</span>${title}</p><p>${body}</p></div>`;
+}
+
+runSimple();
+</script>
+</body>
+</html>

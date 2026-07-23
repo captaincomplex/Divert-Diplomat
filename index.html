@@ -395,6 +395,10 @@ const REL = {
     l1:"Turkey does not recognise the Republic of Cyprus & occupies the north. Sensitive.",
     l2:"Turkey is the only state that recognises the breakaway north ('TRNC') and does not recognise the Republic of Cyprus government. Republic-of-Cyprus airports operate normally for everyone else.",
     l3:"Following inter-communal violence, Turkey invaded the north in 1974 and the island has been divided ever since along the UN buffer zone, with Nicosia the last divided capital in Europe. Turkey keeps troops in the north and recognises only the self-declared 'TRNC'. Reunification talks have repeatedly failed. The Republic of Cyprus (south) is an EU member and a normal, busy diversion field."},
+  "Cyprus|United Kingdom":{lvl:"green",
+    l1:"Very close — former colony, fellow Commonwealth, and the UK holds sovereign military bases on the island. Friendly; routine.",
+    l2:"Cyprus was a British colony until 1960, and at independence the UK retained two Sovereign Base Areas — Akrotiri and Dhekelia — which remain UK territory. The two are close Commonwealth partners with large British expat and tourist populations. Relations are warm and cooperative.",
+    l3:"Under the 1960 Treaty of Establishment, Britain kept the Sovereign Base Areas of Akrotiri and Dhekelia (~254 km²) as military installations; RAF Akrotiri is a major forward operating base for Middle East and Mediterranean operations and the bases host important signals-intelligence facilities. Beyond the bases, Cyprus and the UK share Commonwealth membership, deep trade, education and tourism ties and a very large British resident community. Relations are close — a UK diversion to Cyprus (or use of the SBAs) is straightforward."},
   "Gibraltar (UK)|Spain":{lvl:"amber",
     l1:"Sovereignty dispute. Historic passenger-disembark restriction if a Gib flight diverts to Spain.",
     l2:"Spain contests British sovereignty over Gibraltar. Historically, when a Gibraltar-bound or -originating flight diverted into Spain, passengers faced restrictions on disembarking and continuing overland. Post-Brexit arrangements have eased this — treat as sensitive and confirm current status.",
@@ -488,7 +492,7 @@ const PROF = {
   "Croatia":{blocs:["EU","Schengen","NATO"], desc:"EU/Schengen/NATO member on the Adriatic; major summer tourism traffic."},
   "Bulgaria":{blocs:["EU","NATO"], desc:"EU and NATO member on the Black Sea; joined Schengen (air/sea) in 2024."},
   "Romania":{blocs:["EU","NATO"], desc:"EU and NATO member on the Black Sea; joined Schengen (air/sea) in 2024."},
-  "Malta":{blocs:["EU","Schengen"], desc:"Small, neutral EU/Schengen island state (not in NATO)."},
+  "Malta":{blocs:["EU","Schengen","Commonwealth"], desc:"A small, neutral EU/Schengen island state (not in NATO) and Commonwealth member; a former British colony and strategic naval base."},
   "Denmark":{blocs:["EU","Schengen","NATO"], desc:"Stable Nordic EU/NATO member."},
   "Norway":{blocs:["Schengen","NATO"], desc:"Wealthy NATO founder in the Schengen area but outside the EU."},
   "Iceland":{blocs:["Schengen","NATO"], desc:"Small NATO founder (no standing military) in the Schengen area, outside the EU."},
@@ -580,7 +584,7 @@ const PROF = {
   "Russia":{blocs:["CIS","UNSC-P5"], desc:"A nuclear-armed UN Security Council power turned international pariah after its 2022 invasion of Ukraine; heavily sanctioned and airspace-banned by the West, and increasingly aligned with China."},
   "Belarus":{blocs:["CIS"], desc:"An authoritarian state and Russia's closest ally; EU-sanctioned and shunned by the West since the disputed 2020 election, and a staging ground for the 2022 invasion of Ukraine."},
   "Ukraine":{blocs:[], desc:"At war since Russia's 2022 full-scale invasion; its airspace is closed to civil traffic. An EU and NATO aspirant with strong Western backing."},
-  "Cyprus":{blocs:["EU"], desc:"An EU island state whose north has been occupied by Turkey since 1974; the internationally recognised Republic controls the Greek-Cypriot south and offers a busy, modern diversion field. Not recognised by Turkey."},
+  "Cyprus":{blocs:["EU","Commonwealth"], desc:"An EU and Commonwealth island state whose north has been occupied by Turkey since 1974; the internationally recognised Republic controls the Greek-Cypriot south. The UK retains two Sovereign Base Areas — Akrotiri and Dhekelia (~254 km², kept at independence in 1960) — as military territory, with RAF Akrotiri a major forward operating base. A busy, modern diversion field; not recognised by Turkey."},
   "Northern Cyprus":{blocs:[], desc:"The self-declared Turkish Republic of Northern Cyprus, recognised only by Turkey. Ercan (LCEN) is not an ICAO-recognised international aerodrome; access is effectively via Turkey only."},
   "Kosovo":{blocs:[], desc:"Europe's newest state (2008), recognised by ~100 countries but not Serbia, Russia, China or five EU members; it aspires to EU/NATO membership and Pristina operates normally for recognising states."},
   "Palestine":{blocs:["Arab League"], desc:"Partially recognised (the West Bank and Gaza); its airspace is under Israeli control and Gaza has been devastated by war. Not a viable diversion."},
@@ -688,7 +692,21 @@ function deriveRel(a,b){
   } else if((RU_CONFLICT.has(a)||RU_CONFLICT.has(b)) && ANTIRU.has(a) && ANTIRU.has(b)){
     return antiRuAligned(a,b,ownWorst);
   }
+  const col=colonialTie(a,b);
+  if(col) return colonialRead(a,b,col,ownWorst);
   return blocSynth(a,b,ownWorst);
+}
+function colonialTie(a,b){
+  for(const [x,y] of [[a,b],[b,a]]){ if(COLONIAL[x] && COLONIAL[x].includes(y)) return {power:x, ex:y}; }
+  return null;
+}
+function colonialRead(a,b,col,ownWorst){
+  const cav=caveatText(a,b);
+  const tail=cav.length?` Note ${cav.join(" & ")}'s status below.`:"";
+  return {lvl:worse("green",ownWorst), relLvl:"green",
+    l1:`Former colonial ties — enduring links of language, trade and diaspora. Friendly; routine.`+tail,
+    l2:`${col.ex} is a former ${col.power} colony or protectorate; the two retain close links through language, trade, migration and often shared institutions (the Commonwealth or Francophonie). Relations are functional and friendly, with no dispute affecting operations.`,
+    l3:`Their shared colonial history underpins continuing cultural, educational and economic ties and a substantial diaspora. There is no bilateral dispute of operational relevance; entry and overflight are routine. Assess each on its own status — see the profiles above.`};
 }
 function russiaHostile(ru,x){
   const adj = ru==="Russia"?"Russian":"Belarusian";
@@ -727,27 +745,29 @@ function antiRuAligned(a,b,ownWorst){
 }
 function blocSynth(a,b,ownWorst){
   const shared=sharedBlocs(a,b);
-  let head;
-  if(shared.includes("EU"))                 head="Fellow EU members — open borders and free movement; fully benign.";
-  else if(shared.includes("NATO"))          head="NATO allies — friendly; no restrictions.";
-  else if(shared.includes("GCC"))           head="Fellow Gulf (GCC) states — closely aligned and friendly.";
-  else if(shared.includes("Arab League"))   head="Fellow Arab League states — generally friendly.";
-  else if(shared.includes("CIS"))           head="Both post-Soviet CIS states — ordinarily cooperative.";
-  else if(shared.includes("ASEAN"))         head="Fellow ASEAN members — cooperative.";
-  else if(shared.includes("African Union")) head="Both African Union members — ordinary relations.";
-  else if(shared.includes("Commonwealth"))  head="Both Commonwealth members — ordinary, friendly relations.";
-  else if(shared.includes("Mercosur"))      head="Fellow Mercosur states — cooperative.";
-  else                                      head="No known bilateral dispute — ordinary, functional relations.";
   const cav=caveatText(a,b);
-  const l1 = head + (cav.length? ` Note the status of ${cav.join(" & ")} below.` : "");
-  const sh = shared.length ? `They share membership of ${shared.join(", ")}.` : "They share no common alliance or bloc.";
-  const l2 = `No curated bilateral history is held for this pair, so this is a general read from each country's profile. ${sh} `
-    + (shared.length ? "" : "There is no significant bilateral relationship or dispute on record — treat entry and overflight as ordinary for each state. ")
-    + "See the country profiles below for context.";
-  const l3 = shared.length
-    ? `As fellow ${shared.join(", ")} members, ${a} and ${b} share institutional ties and cooperative relations; there is no notable dispute between them.`
-    : `There is no significant bilateral relationship, alliance or dispute between ${a} and ${b} on record. Treat each independently — see their profiles for individual status.`;
-  return {lvl:worse("green",ownWorst), relLvl:"green", l1, l2, l3};
+  const tail = cav.length? ` Note the status of ${cav.join(" & ")} below.` : "";
+  if(shared.length){
+    let head;
+    if(shared.includes("EU"))                 head="Fellow EU members — open borders and free movement; fully benign.";
+    else if(shared.includes("NATO"))          head="NATO allies — friendly; no restrictions.";
+    else if(shared.includes("GCC"))           head="Fellow Gulf (GCC) states — closely aligned and friendly.";
+    else if(shared.includes("Arab League"))   head="Fellow Arab League states — generally friendly.";
+    else if(shared.includes("CIS"))           head="Both post-Soviet CIS states — ordinarily cooperative.";
+    else if(shared.includes("ASEAN"))         head="Fellow ASEAN members — cooperative.";
+    else if(shared.includes("African Union")) head="Both African Union members — cooperative regional relations.";
+    else if(shared.includes("Commonwealth"))  head="Both Commonwealth members — friendly, with historical and institutional links.";
+    else                                      head="Fellow Mercosur states — cooperative.";
+    return {lvl:worse("green",ownWorst), relLvl:"green",
+      l1: head+tail,
+      l2: `${a} and ${b} are fellow ${shared.join(", ")} members, which gives them institutional ties and cooperative relations. There is no significant dispute between them; entry and overflight are routine.`,
+      l3: `As fellow ${shared.join(", ")} members, ${a} and ${b} cooperate through those bodies and maintain friendly relations, with no notable bilateral dispute. Assess each on its own status — see the profiles above.`};
+  }
+  /* No shared bloc, colonial tie or curated history — distant but cordial. Never "nothing on record". */
+  return {lvl:worse("green",ownWorst), relLvl:"green",
+    l1: `No known dispute — relations are cordial though not close; entry and overflight are routine.`+tail,
+    l2: `${a} and ${b} share no formal alliance and have limited direct bilateral relations, conducted mainly through the UN and other multilateral bodies. There is no significant dispute between them; treat entry and overflight as ordinary for each state.`,
+    l3: `Beyond routine diplomatic and trade contact, ${a} and ${b} have no notable bilateral relationship — neither alliance nor quarrel — and no passenger or crew implications arise from the pairing itself. Assess each on its own status; see the country profiles above.`};
 }
 function profileCard(name){
   const p=PROF[name]||{};
@@ -878,6 +898,14 @@ const RU = new Set(["Russia","Belarus"]);
 const ANTIRU = new Set([...WEST,"Ukraine","Moldova","Georgia"]);
 const RU_CONFLICT = new Set(["Ukraine","Moldova","Georgia"]);   // states in live dispute with Russia
 const RU_BORDER = ["Estonia","Latvia","Lithuania","Finland","Poland","Norway"];
+/* Former colonial power → ex-colonies / protectorates (for enduring-ties synthesis). */
+const COLONIAL = {
+  "United Kingdom":["India","Pakistan","Bangladesh","Sri Lanka","Myanmar","Malaysia","Singapore","Kenya","Nigeria","Ghana","South Africa","Egypt","Sudan","Uganda","Tanzania","Zambia","Zimbabwe","Botswana","Malawi","Sierra Leone","Gambia","Cyprus","Malta","Jamaica","Bahamas","Barbados","Trinidad & Tobago","Guyana","Belize","Mauritius","Fiji","Iraq","Jordan","Kuwait","Bahrain","Qatar","United Arab Emirates","Oman"],
+  "France":["Algeria","Morocco","Tunisia","Senegal","Ivory Coast","Mali","Niger","Chad","Cameroon","Gabon","Congo","Benin","Burkina Faso","Guinea","Togo","Madagascar","Djibouti","Mauritania","Central African Republic","Lebanon","Syria","Vietnam","Laos","Cambodia"],
+  "Spain":["Mexico","Cuba","Dominican Republic","Guatemala","Honduras","El Salvador","Nicaragua","Costa Rica","Panama","Colombia","Venezuela","Ecuador","Peru","Bolivia","Chile","Argentina","Uruguay","Paraguay","Equatorial Guinea"],
+  "Portugal":["Brazil","Angola","Mozambique","Cape Verde","Guinea-Bissau","Sao Tome","Timor-Leste"],
+  "Netherlands":["Indonesia","Suriname"]
+};
 
 /* ---- helpers ---- */
 function cd(n){ return Object.assign({r:"",status:"green"}, C[n]||{}); }

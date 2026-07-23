@@ -105,6 +105,10 @@
   .hist h4{margin:16px 0 3px;font-size:.9rem;color:var(--ink)}
   .hist h4:first-child{margin-top:2px}
   .hist p{margin:0;font-size:.92rem;color:var(--ink)}
+  .profile{border:1px solid var(--line);border-radius:10px;padding:11px 13px;margin-bottom:9px;background:var(--panel2)}
+  .profile h4{margin:0 0 4px;font-size:.96rem}
+  .profile .blocs{font-size:.68rem;font-weight:800;letter-spacing:.04em;color:var(--accent);margin-bottom:5px;text-transform:uppercase}
+  .profile p{margin:0;font-size:.9rem;color:var(--ink)}
   .muted{color:var(--muted);font-size:.86rem}
   .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.8rem;color:var(--muted);margin-top:12px}
   .legend span{display:flex;align-items:center;gap:6px}
@@ -424,6 +428,146 @@ const REL = {
 };
 
 /* =========================================================================
+   2b. COUNTRY PROFILES  — blocs (alliances) + a short descriptive read.
+   Used for Full detail and to synthesise a relationship for uncurated pairs.
+   ========================================================================= */
+const PROF = {
+  "United Kingdom":{blocs:["NATO","Commonwealth","UNSC-P5"], desc:"A permanent UN Security Council member and leading NATO power. Left the EU in 2020 but keeps close European and transatlantic ties. Politically stable, with global diplomatic reach."},
+  "Ireland":{blocs:["EU"], desc:"Prosperous, militarily neutral EU member outside NATO. Shares the Common Travel Area with the UK. Broadly friendly with all."},
+  "France":{blocs:["EU","Schengen","NATO","UNSC-P5"], desc:"A UN Security Council member, nuclear power and core EU/NATO state, with worldwide interests and overseas territories."},
+  "Germany":{blocs:["EU","Schengen","NATO"], desc:"Europe's largest economy and a central EU/NATO member; stable and diplomatically cautious."},
+  "Netherlands":{blocs:["EU","Schengen","NATO"], desc:"Founding EU/NATO member; open, trade-oriented and stable."},
+  "Belgium":{blocs:["EU","Schengen","NATO"], desc:"Founding EU/NATO member; hosts EU and NATO headquarters in Brussels."},
+  "Luxembourg":{blocs:["EU","Schengen","NATO"], desc:"Small, wealthy founding EU/NATO member and financial centre."},
+  "Portugal":{blocs:["EU","Schengen","NATO"], desc:"Stable EU/Schengen/NATO member on Europe's Atlantic edge."},
+  "Italy":{blocs:["EU","Schengen","NATO"], desc:"Major EU/NATO economy; central Mediterranean power; stable if politically fluid."},
+  "Spain":{blocs:["EU","Schengen","NATO"], desc:"Large EU/NATO member; disputes British sovereignty over Gibraltar; otherwise broadly friendly."},
+  "Greece":{blocs:["EU","Schengen","NATO"], desc:"An EU, Schengen and NATO member and major tourism/aviation hub. Long-running rivalry with Turkey over the Aegean and Cyprus, but otherwise broadly friendly."},
+  "Austria":{blocs:["EU","Schengen"], desc:"Prosperous, constitutionally neutral EU member (not in NATO); hosts UN and OSCE bodies in Vienna."},
+  "Switzerland":{blocs:["Schengen"], desc:"Famously neutral, wealthy non-EU/non-NATO state in the Schengen area; hosts many international organisations."},
+  "Poland":{blocs:["EU","Schengen","NATO"], desc:"Large EU/NATO member and eastern-flank security anchor; wary of Russia."},
+  "Czechia":{blocs:["EU","Schengen","NATO"], desc:"Stable central-European EU/NATO member."},
+  "Slovakia":{blocs:["EU","Schengen","NATO"], desc:"EU/NATO member; politics sometimes warmer toward Russia than neighbours."},
+  "Hungary":{blocs:["EU","Schengen","NATO"], desc:"EU/NATO member that nonetheless keeps notably warmer ties with Russia and China than most of the bloc."},
+  "Slovenia":{blocs:["EU","Schengen","NATO"], desc:"Small, stable Alpine EU/NATO member."},
+  "Croatia":{blocs:["EU","Schengen","NATO"], desc:"EU/Schengen/NATO member on the Adriatic; major summer tourism traffic."},
+  "Bulgaria":{blocs:["EU","NATO"], desc:"EU and NATO member on the Black Sea; joined Schengen (air/sea) in 2024."},
+  "Romania":{blocs:["EU","NATO"], desc:"EU and NATO member on the Black Sea; joined Schengen (air/sea) in 2024."},
+  "Malta":{blocs:["EU","Schengen"], desc:"Small, neutral EU/Schengen island state (not in NATO)."},
+  "Denmark":{blocs:["EU","Schengen","NATO"], desc:"Stable Nordic EU/NATO member."},
+  "Norway":{blocs:["Schengen","NATO"], desc:"Wealthy NATO founder in the Schengen area but outside the EU."},
+  "Iceland":{blocs:["Schengen","NATO"], desc:"Small NATO founder (no standing military) in the Schengen area, outside the EU."},
+  "Sweden":{blocs:["EU","Schengen","NATO"], desc:"Nordic EU member that dropped two centuries of non-alignment to join NATO in 2024."},
+  "Finland":{blocs:["EU","Schengen","NATO"], desc:"EU member that joined NATO in 2023; shares a long border with Russia."},
+  "Estonia":{blocs:["EU","Schengen","NATO"], desc:"Baltic EU/NATO member; digitally advanced and wary of Russia."},
+  "Latvia":{blocs:["EU","Schengen","NATO"], desc:"Baltic EU/NATO member; wary of Russia."},
+  "Lithuania":{blocs:["EU","Schengen","NATO"], desc:"Baltic EU/NATO member; borders Russia's Kaliningrad exclave and Belarus."},
+  "Serbia":{blocs:[], desc:"EU candidate but militarily neutral, keeping close historic ties to Russia and growing ones to China. Does not recognise Kosovo."},
+  "Bosnia & Herzegovina":{blocs:[], desc:"Complex post-war federal state and EU candidate; politically fragile along ethnic lines."},
+  "North Macedonia":{blocs:["NATO"], desc:"NATO member and EU candidate; resolved its name dispute with Greece in 2019."},
+  "Albania":{blocs:["NATO"], desc:"NATO member and EU candidate on the Adriatic."},
+  "Moldova":{blocs:[], desc:"Small, neutral EU candidate; hosts the Russian-backed breakaway region of Transnistria."},
+  "Greenland":{blocs:["NATO"], desc:"Autonomous Danish territory under the NATO umbrella; strategically vital Arctic location."},
+  "Turkey":{blocs:["NATO"], desc:"NATO member straddling Europe and Asia; an assertive regional power under a strong presidency, with rivalries toward Greece and Armenia and complex ties across the Middle East."},
+  "Georgia":{blocs:[], desc:"Pro-Western in aspiration but with no relations with Russia since their 2008 war; two regions remain Russian-occupied."},
+  "Armenia":{blocs:["CIS"], desc:"Small landlocked state, traditionally Russia-aligned but tilting West; borders with Turkey and Azerbaijan are closed after the Nagorno-Karabakh conflicts."},
+  "Azerbaijan":{blocs:["CIS"], desc:"Oil-rich, authoritarian state extremely close to Turkey ('one nation, two states'); victorious over Armenia in Karabakh."},
+  "Kazakhstan":{blocs:["CIS"], desc:"Large, resource-rich Central Asian state balancing Russia, China and the West; stable but authoritarian."},
+  "Uzbekistan":{blocs:["CIS"], desc:"Populous Central Asian state cautiously opening up after decades of isolation; authoritarian."},
+  "Turkmenistan":{blocs:[], desc:"One of the world's most closed and authoritarian states, officially 'permanently neutral' and disengaged from international blocs. Relations with most countries are cordial but minimal; extreme personality-cult politics and tight entry controls."},
+  "Kyrgyzstan":{blocs:["CIS"], desc:"The most volatile Central Asian state, with several revolutions; broadly Russia-aligned."},
+  "Tajikistan":{blocs:["CIS"], desc:"Poor, authoritarian, Russia-aligned state with a long, sensitive border with Afghanistan."},
+  "Israel":{blocs:[], desc:"A close US ally with an advanced economy and military. No relations with much of the region, though normalising with some Gulf states; recurring conflict on its borders."},
+  "Lebanon":{blocs:["Arab League"], desc:"Fragile, deeply indebted state marked by sectarian power-sharing and recurrent conflict with Israel; bars Israeli nationals."},
+  "Syria":{blocs:["Arab League"], desc:"Emerging from civil war with collapsed institutions and heavy sanctions; bars Israeli nationals."},
+  "Jordan":{blocs:["Arab League"], desc:"Stable, Western-aligned monarchy at peace with Israel; hosts large refugee populations."},
+  "Egypt":{blocs:["Arab League","African Union"], desc:"The most populous Arab state; military-backed government at peace with Israel; pivotal to regional diplomacy and controls the Suez Canal."},
+  "Saudi Arabia":{blocs:["Arab League","GCC"], desc:"Wealthy absolute monarchy and custodian of Islam's holiest sites; a regional heavyweight whose rivalry with Iran eased with restored ties in 2023."},
+  "United Arab Emirates":{blocs:["Arab League","GCC"], desc:"Wealthy, business-focused federation and aviation super-hub (Dubai/Abu Dhabi); normalised relations with Israel in 2020."},
+  "Qatar":{blocs:["Arab League","GCC"], desc:"Very wealthy gas state and aviation hub (Doha); influential mediator; a 2017–21 Gulf blockade against it is resolved."},
+  "Bahrain":{blocs:["Arab League","GCC"], desc:"Small Gulf monarchy hosting the US Fifth Fleet; normalised relations with Israel in 2020."},
+  "Kuwait":{blocs:["Arab League","GCC"], desc:"Wealthy Gulf monarchy; bars Israeli nationals."},
+  "Oman":{blocs:["Arab League","GCC"], desc:"Stable, quietly diplomatic Gulf sultanate that often mediates regional disputes."},
+  "Iran":{blocs:[], desc:"An Islamic Republic at odds with the US, Israel and Gulf rivals; heavily sanctioned; backs regional proxy networks."},
+  "Iraq":{blocs:["Arab League"], desc:"Rebuilding after decades of war; a fragile democracy balancing US and Iranian influence."},
+  "Yemen":{blocs:["Arab League"], desc:"Devastated by civil war and split control; a humanitarian catastrophe."},
+  "Morocco":{blocs:["Arab League","African Union"], desc:"Stable monarchy controlling Western Sahara; close to the West and the Gulf; severed ties with Algeria."},
+  "Algeria":{blocs:["Arab League","African Union"], desc:"Large, gas-rich, military-influenced state with historic Russia ties; closed border and airspace with Morocco."},
+  "Tunisia":{blocs:["Arab League","African Union"], desc:"Birthplace of the Arab Spring; some recent democratic backsliding but generally stable for travel."},
+  "Libya":{blocs:["Arab League","African Union"], desc:"Divided between rival governments since 2011; contested airspace and chronic volatility."},
+  "Sudan":{blocs:["Arab League","African Union"], desc:"Engulfed in civil war since 2023, with collapsing state institutions."},
+  "Ethiopia":{blocs:["African Union"], desc:"Populous Horn-of-Africa state recovering from the Tigray war; hosts the African Union in Addis Ababa."},
+  "Kenya":{blocs:["African Union","Commonwealth"], desc:"Stable regional hub and major East African aviation gateway (Nairobi)."},
+  "Nigeria":{blocs:["African Union","Commonwealth"], desc:"Africa's most populous nation and largest economy, with security challenges in parts of the country."},
+  "South Africa":{blocs:["African Union","Commonwealth"], desc:"Africa's most industrialised economy; a non-aligned foreign policy and stable institutions."},
+  "Ghana":{blocs:["African Union","Commonwealth"], desc:"Stable West African democracy."},
+  "Senegal":{blocs:["African Union"], desc:"One of West Africa's more stable democracies; Francophone."},
+  "India":{blocs:["Commonwealth"], desc:"The world's most populous democracy and a rising power with a non-aligned tradition; rivalries with Pakistan and China."},
+  "Pakistan":{blocs:["Commonwealth"], desc:"A populous, nuclear-armed state close to China, with an enduring rivalry with India and internal security challenges."},
+  "Afghanistan":{blocs:[], desc:"Run by the Taliban since 2021 and internationally isolated, with no widely recognised government."},
+  "Sri Lanka":{blocs:["Commonwealth"], desc:"Island nation recovering from a severe economic crisis; stable for travel."},
+  "Bangladesh":{blocs:["Commonwealth"], desc:"Very populous, low-lying delta state with a fast-growing economy; bars Israeli nationals."},
+  "China":{blocs:["UNSC-P5"], desc:"The world's second superpower and a one-party state; assertive over Taiwan and the South China Sea, with vast global economic reach."},
+  "Japan":{blocs:[], desc:"An advanced democracy and US ally with a pacifist constitution; historic frictions with neighbours but economically central."},
+  "South Korea":{blocs:[], desc:"An advanced democracy and US ally, still technically at war with North Korea."},
+  "North Korea":{blocs:[], desc:"An isolated, totalitarian, nuclear-armed state under heavy sanctions; effectively closed to Western operators."},
+  "Mongolia":{blocs:[], desc:"A democracy landlocked between Russia and China that carefully balances both, plus 'third-neighbour' partners."},
+  "Thailand":{blocs:["ASEAN"], desc:"Major SE-Asian economy and tourism/aviation hub (Bangkok); periodic political turbulence but open to travel."},
+  "Vietnam":{blocs:["ASEAN"], desc:"One-party state with a fast-growing, outward-facing economy; balances the US and China."},
+  "Cambodia":{blocs:["ASEAN"], desc:"Authoritarian-leaning state closely tied to China."},
+  "Laos":{blocs:["ASEAN"], desc:"Small, one-party, landlocked SE-Asian state increasingly in China's orbit."},
+  "Myanmar":{blocs:["ASEAN"], desc:"Gripped by civil war since the 2021 military coup; large areas contested."},
+  "Malaysia":{blocs:["ASEAN","Commonwealth"], desc:"Diverse, middle-income SE-Asian economy; bars Israeli nationals and aircraft."},
+  "Singapore":{blocs:["ASEAN","Commonwealth"], desc:"Wealthy city-state and global aviation/finance hub; stable and efficient."},
+  "Indonesia":{blocs:["ASEAN"], desc:"The world's largest Muslim-majority nation and a populous archipelago; no relations with Israel."},
+  "Brunei":{blocs:["ASEAN","Commonwealth"], desc:"Small, oil-rich sultanate."},
+  "Philippines":{blocs:["ASEAN"], desc:"Populous archipelago and US treaty ally; tensions with China over the South China Sea."},
+  "United States":{blocs:["NATO","UNSC-P5"], desc:"The world's leading power, with stable institutions and unmatched global military and diplomatic reach."},
+  "Canada":{blocs:["NATO","Commonwealth"], desc:"A stable G7 democracy and close US partner."},
+  "Mexico":{blocs:[], desc:"A large economy and US neighbour with significant organised-crime and security challenges in parts."},
+  "Cuba":{blocs:[], desc:"A one-party socialist state under a long-standing US embargo."},
+  "Brazil":{blocs:["Mercosur"], desc:"South America's largest country and economy; a non-aligned regional leader."},
+  "Argentina":{blocs:["Mercosur"], desc:"Major South American economy; claims the UK-held Falkland Islands."},
+  "Chile":{blocs:[], desc:"Stable, prosperous Pacific-facing South American democracy."},
+  "Colombia":{blocs:[], desc:"Large Andean economy and US partner; a decades-long internal conflict has largely wound down."},
+  "Australia":{blocs:["Commonwealth","NATO"], desc:"A stable, Western-aligned democracy with close US/UK security ties (AUKUS)."},
+  "New Zealand":{blocs:["Commonwealth"], desc:"A stable, independent-minded Western democracy in the South Pacific."}
+};
+
+/* Build a general relationship read for pairs with no curated history. */
+function synth(a,b){
+  const A=(PROF[a]||{}).blocs||[], B=(PROF[b]||{}).blocs||[];
+  const shared=A.filter(x=>B.includes(x));
+  const da=cd(a), db=cd(b);
+  const lvl=worse(da.status,db.status);
+  let head;
+  if(shared.includes("EU"))                 head="Fellow EU members — open borders and free movement; fully benign.";
+  else if(shared.includes("NATO"))          head="NATO allies — friendly; no restrictions.";
+  else if(shared.includes("GCC"))           head="Fellow Gulf (GCC) states — closely aligned and friendly.";
+  else if(shared.includes("Arab League"))   head="Fellow Arab League states — generally friendly.";
+  else if(shared.includes("CIS"))           head="Both post-Soviet CIS states — ordinarily cooperative.";
+  else if(shared.includes("ASEAN"))         head="Fellow ASEAN members — cooperative.";
+  else if(shared.includes("African Union")) head="Both African Union members — ordinary relations.";
+  else if(shared.includes("Commonwealth"))  head="Both Commonwealth members — ordinary, friendly relations.";
+  else if(shared.includes("Mercosur"))      head="Fellow Mercosur states — cooperative.";
+  else                                      head="No known bilateral dispute — ordinary, functional relations.";
+  const cav=[]; if(da.status!=="green")cav.push(a); if(db.status!=="green")cav.push(b);
+  const l1 = head + (cav.length? ` Note the status of ${cav.join(" & ")} below.` : "");
+  const sh = shared.length ? `They share membership of ${shared.join(", ")}.`
+                           : "They share no common alliance or bloc.";
+  const l2 = `No curated bilateral history is held for this pair, so this is a general read from each country's profile. ${sh} `
+    + (shared.length ? "" : "There is no significant bilateral relationship or dispute on record — treat entry and overflight as ordinary for each state. ")
+    + "See the country profiles below for context.";
+  return {lvl, l1, l2};
+}
+function profileCard(name){
+  const p=PROF[name]||{};
+  const blocs=(p.blocs&&p.blocs.length)?`<div class="blocs">${p.blocs.join(" · ")}</div>`:"";
+  const desc=p.desc||"No detailed country profile is held in this dataset — treat as ordinary and verify locally.";
+  return `<div class="profile"><h4>${name}</h4>${blocs}<p>${desc}</p></div>`;
+}
+
+/* =========================================================================
    3. ICAO location-indicator prefixes  →  country (also seeds the list).
    ========================================================================= */
 const ICAO2 = {
@@ -637,18 +781,15 @@ function runSimple(){
   if(a===b){ out.innerHTML=`<div class="card muted">Pick two different countries.</div>`; return; }
 
   const r=rel(a,b), da=cd(a), db=cd(b);
-  const lvl = r ? r.lvl : worse(da.status,db.status);
-  const one = r ? r.l1 : defaultLine(a,b,da,db);
+  const s = r ? null : synth(a,b);
+  const lvl = r ? r.lvl : s.lvl;
+  const one = r ? r.l1 : s.l1;
 
   let html = verdict(lvl, `${a} & ${b}`, one, `Relationship overview · detail level ${LEVEL}`);
 
   if(LEVEL>=2){
     html += `<div class="card">`;
-    if(r){
-      html += `<div class="hist"><h4>The relationship</h4><p>${r.l2}</p></div>`;
-    } else {
-      html += `<p class="muted">No specific bilateral flashpoint is recorded for this pair — relations are treated as ordinary. The assessment below reflects each country's own status.</p>`;
-    }
+    html += `<div class="hist"><h4>The relationship</h4><p>${ r ? r.l2 : s.l2 }</p></div>`;
     const sn = stateNotes(a,da)+stateNotes(b,db);
     if(sn){ html += `<div class="section-h">Country status</div>` + sn; }
 
@@ -657,9 +798,8 @@ function runSimple(){
         html += `<div class="hist"><h4>Full background</h4><p>${r.l3}</p></div>`;
         if(r.pax) html += `<div class="section-h">Passenger &amp; crew implications</div>` + f("amber","Passenger restriction", r.pax);
         if(r.crew) html += f("amber","Crew note", r.crew);
-      } else {
-        html += `<p class="muted" style="margin-top:14px">No detailed historical record is held for this pair in the dataset.</p>`;
       }
+      html += `<div class="section-h">Country profiles</div>` + profileCard(a) + profileCard(b);
     }
     html += `</div>`;
   }

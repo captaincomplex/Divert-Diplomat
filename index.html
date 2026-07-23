@@ -111,8 +111,11 @@
   .profile h4{margin:0 0 4px;font-size:.96rem}
   .profile .blocs{font-size:.68rem;font-weight:800;letter-spacing:.04em;color:var(--accent);margin-bottom:5px;text-transform:uppercase}
   .profile p{margin:0;font-size:.9rem;color:var(--ink)}
-  .mapwrap{border:1px solid var(--line);border-radius:12px;overflow:auto;background:var(--panel2);max-height:64vh;-webkit-overflow-scrolling:touch}
-  .mapwrap svg{width:100%;height:auto;display:block;min-width:660px}
+  .mapwrap{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--panel2);height:60vh;position:relative;touch-action:none}
+  .mapwrap svg{width:100%;height:100%;display:block;cursor:grab}
+  .mapwrap svg:active{cursor:grabbing}
+  .mapzoom{position:absolute;right:10px;bottom:10px;display:flex;flex-direction:column;gap:6px}
+  .mapzoom button{width:38px;height:38px;border-radius:9px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font-size:1.3rem;font-weight:700;line-height:1;cursor:pointer;box-shadow:var(--shadow)}
   .mapwrap path{fill:var(--map-out);stroke:var(--panel);stroke-width:.3;vector-effect:non-scaling-stroke}
   .mapwrap path.m-ok{fill:var(--map-ok)} .mapwrap path.m-amber{fill:var(--amber)} .mapwrap path.m-red{fill:var(--red)}
   .mapwrap path.sel{cursor:pointer} .mapwrap path.m-pick{fill:var(--accent);stroke:var(--ink);stroke-width:.9}
@@ -149,9 +152,9 @@
   </div>
 
   <div class="modes">
-    <button id="mMap" onclick="setMode('map')">🗺 Map</button>
     <button id="mSimple" class="active" onclick="setMode('simple')">Relations</button>
     <button id="mAdv" onclick="setMode('advanced')">Diversion</button>
+    <button id="mMap" onclick="setMode('map')">🗺 Map</button>
   </div>
 
   <!-- SIMPLE -->
@@ -575,12 +578,69 @@ const PROF = {
   "New Zealand":{blocs:["Commonwealth"], desc:"A stable, independent-minded Western democracy in the South Pacific."}
 };
 
-/* Build a general relationship read for pairs with no curated history. */
-function synth(a,b){
-  const A=(PROF[a]||{}).blocs||[], B=(PROF[b]||{}).blocs||[];
-  const shared=A.filter(x=>B.includes(x));
-  const da=cd(a), db=cd(b);
-  const lvl=worse(da.status,db.status);
+/* ---- relationship engine ----
+   pairAssessment(a,b) always returns {lvl, relLvl, l1, l2, l3, pax?, crew?, curated?}.
+   lvl folds in each country's own status (airspace/instability); relLvl is the pure
+   bilateral relationship (used by the diversion checker so a hostile-state's own status
+   isn't double-counted). Priority: curated REL → Russia axis → alignment → shared blocs. */
+function sharedBlocs(a,b){ const A=(PROF[a]||{}).blocs||[], B=(PROF[b]||{}).blocs||[]; return A.filter(x=>B.includes(x)); }
+function profBlocLine(x){ const b=(PROF[x]||{}).blocs||[]; const eu=b.includes("EU"),nato=b.includes("NATO");
+  return eu&&nato?"an EU and NATO member":nato?"a NATO member":eu?"an EU member":"a Western-aligned state"; }
+function caveatText(a,b){ const c=[]; if(cd(a).status!=="green")c.push(a); if(cd(b).status!=="green")c.push(b); return c; }
+
+function pairAssessment(a,b){
+  const r=REL[keyPair(a,b)];
+  if(r) return {...r, relLvl:r.lvl, curated:true};
+  return deriveRel(a,b);
+}
+function deriveRel(a,b){
+  const ownWorst=worse(cd(a).status,cd(b).status);
+  const ru = RU.has(a)?a : (RU.has(b)?b : null);
+  if(ru){
+    const other = ru===a?b:a;
+    if(ANTIRU.has(other)) return russiaHostile(ru, other);
+  } else if((RU_CONFLICT.has(a)||RU_CONFLICT.has(b)) && ANTIRU.has(a) && ANTIRU.has(b)){
+    return antiRuAligned(a,b,ownWorst);
+  }
+  return blocSynth(a,b,ownWorst);
+}
+function russiaHostile(ru,x){
+  const adj = ru==="Russia"?"Russian":"Belarusian";
+  const space = ru==="Russia"?"western Russia":"Belarus";
+  if(x==="Ukraine"){
+    return {lvl:"red", relLvl:"red",
+      l1:`Hostile — ${ru} is a party to the war. ${adj} airspace and the border are closed/hostile; neither is a viable diversion.`,
+      l2:`${ru} launched or staged part of the 2022 invasion of Ukraine. Relations are those of active conflict, with no air links and a live war along the frontier.`,
+      l3:`Ukraine's airspace is closed by NOTAM and ${adj} airspace is sanctioned and hostile. Treat the entire region with extreme caution and expect no cooperation of any kind.`};
+  }
+  let l3=`As ${profBlocLine(x)}, ${x} closed its airspace to ${adj} carriers and ${ru} reciprocated. Western-registered or -leased aircraft risk impound and loss of insurance cover inside ${ru}; overflight of ${space} is off-limits. This is a live operational bar, not merely a diplomatic one.`;
+  if(RU_BORDER.includes(x)) l3+=` As a NATO frontline state on ${ru}'s border, tensions are especially acute.`;
+  return {lvl:"red", relLvl:"red",
+    l1:`Hostile. Mutual airspace ban and sanctions — an aircraft registered in ${x} cannot use ${adj} airspace, and vice-versa.`,
+    l2:`Since Russia's 2022 invasion of Ukraine, ${ru} and the EU/NATO bloc — including ${x} — have banned each other's carriers and imposed sweeping sanctions. Relations are deeply hostile, with effectively no civil air links.`,
+    l3};
+}
+function antiRuAligned(a,b,ownWorst){
+  const shared=sharedBlocs(a,b);
+  const ua = a==="Ukraine"?a : (b==="Ukraine"?b : null);
+  let l1,l2,l3;
+  if(ua){
+    const sup = ua===a?b:a;
+    l1=`Aligned & friendly — ${sup} supports Ukraine; both oppose Russian aggression.`;
+    l2=`${a} and ${b} are closely aligned against Russia's invasion of Ukraine, with ${sup} providing political and, in many cases, military and humanitarian support. Relations are warm and cooperative.`;
+    l3=`Beyond any shared institutions, ${a} and ${b} sit firmly in the anti-Kremlin camp; expect full cooperation. Entry and overflight are routine — subject only to Ukraine's own wartime airspace closure.`;
+  } else {
+    const via = shared.length?`fellow ${shared.join(", ")} members and `:"";
+    l1=`Aligned & friendly — ${via}both oppose Russia.`;
+    l2=`${a} and ${b} are ${via}aligned against Russian aggression; relations are friendly and cooperative.`;
+    l3=`Both sit in the Western / anti-Kremlin camp; expect full cooperation. Entry and overflight are routine.`;
+  }
+  const cav=caveatText(a,b);
+  if(cav.length) l1+=` But note ${cav.join(" & ")}'s status below.`;
+  return {lvl:worse("green",ownWorst), relLvl:"green", l1, l2, l3};
+}
+function blocSynth(a,b,ownWorst){
+  const shared=sharedBlocs(a,b);
   let head;
   if(shared.includes("EU"))                 head="Fellow EU members — open borders and free movement; fully benign.";
   else if(shared.includes("NATO"))          head="NATO allies — friendly; no restrictions.";
@@ -592,14 +652,16 @@ function synth(a,b){
   else if(shared.includes("Commonwealth"))  head="Both Commonwealth members — ordinary, friendly relations.";
   else if(shared.includes("Mercosur"))      head="Fellow Mercosur states — cooperative.";
   else                                      head="No known bilateral dispute — ordinary, functional relations.";
-  const cav=[]; if(da.status!=="green")cav.push(a); if(db.status!=="green")cav.push(b);
+  const cav=caveatText(a,b);
   const l1 = head + (cav.length? ` Note the status of ${cav.join(" & ")} below.` : "");
-  const sh = shared.length ? `They share membership of ${shared.join(", ")}.`
-                           : "They share no common alliance or bloc.";
+  const sh = shared.length ? `They share membership of ${shared.join(", ")}.` : "They share no common alliance or bloc.";
   const l2 = `No curated bilateral history is held for this pair, so this is a general read from each country's profile. ${sh} `
     + (shared.length ? "" : "There is no significant bilateral relationship or dispute on record — treat entry and overflight as ordinary for each state. ")
     + "See the country profiles below for context.";
-  return {lvl, l1, l2};
+  const l3 = shared.length
+    ? `As fellow ${shared.join(", ")} members, ${a} and ${b} share institutional ties and cooperative relations; there is no notable dispute between them.`
+    : `There is no significant bilateral relationship, alliance or dispute between ${a} and ${b} on record. Treat each independently — see their profiles for individual status.`;
+  return {lvl:worse("green",ownWorst), relLvl:"green", l1, l2, l3};
 }
 function profileCard(name){
   const p=PROF[name]||{};
@@ -725,6 +787,11 @@ const WEST = new Set(["United Kingdom","Ireland","France","Germany","Netherlands
   "Luxembourg","Spain","Portugal","Italy","Malta","Switzerland","Austria","Poland","Czechia",
   "Slovakia","Hungary","Slovenia","Croatia","Bulgaria","Romania","Greece","Denmark","Norway",
   "Sweden","Finland","Iceland","Estonia","Latvia","Lithuania","United States","Canada","Australia","New Zealand","Japan"]);
+/* Russia axis: RU = Russia & its co-belligerent; ANTIRU = states opposed to Russia. */
+const RU = new Set(["Russia","Belarus"]);
+const ANTIRU = new Set([...WEST,"Ukraine","Moldova","Georgia"]);
+const RU_CONFLICT = new Set(["Ukraine","Moldova","Georgia"]);   // states in live dispute with Russia
+const RU_BORDER = ["Estonia","Latvia","Lithuania","Finland","Poland","Norway"];
 
 /* ---- helpers ---- */
 function cd(n){ return Object.assign({r:"",status:"green"}, C[n]||{}); }
@@ -825,25 +892,20 @@ const ICON={green:"✓",amber:"!",red:"✕",grey:"?"};
 /* ======================= RELATIONS CHECK ======================= */
 function relHTML(a,b,level){
   if(a===b) return `<div class="card muted">Pick two different countries.</div>`;
-  const r=rel(a,b), da=cd(a), db=cd(b);
-  const s = r ? null : synth(a,b);
-  const lvl = r ? r.lvl : s.lvl;
-  const one = r ? r.l1 : s.l1;
+  const A=pairAssessment(a,b), da=cd(a), db=cd(b);
 
-  let html = verdict(lvl, `${a} & ${b}`, one, `Relationship overview · detail level ${level}`);
+  let html = verdict(A.lvl, `${a} & ${b}`, A.l1, `Relationship overview · detail level ${level}`);
 
   if(level>=2){
     html += `<div class="card">`;
-    html += `<div class="hist"><h4>The relationship</h4><p>${ r ? r.l2 : s.l2 }</p></div>`;
+    html += `<div class="hist"><h4>The relationship</h4><p>${A.l2}</p></div>`;
     const sn = stateNotes(a,da)+stateNotes(b,db);
     if(sn){ html += `<div class="section-h">Country status</div>` + sn; }
 
     if(level>=3){
-      if(r){
-        html += `<div class="hist"><h4>Full background</h4><p>${r.l3}</p></div>`;
-        if(r.pax) html += `<div class="section-h">Passenger &amp; crew implications</div>` + f("amber","Passenger restriction", r.pax);
-        if(r.crew) html += f("amber","Crew note", r.crew);
-      }
+      if(A.l3) html += `<div class="hist"><h4>Full background</h4><p>${A.l3}</p></div>`;
+      if(A.pax) html += `<div class="section-h">Passenger &amp; crew implications</div>` + f("amber","Passenger restriction", A.pax);
+      if(A.crew) html += f("amber","Crew note", A.crew);
       html += `<div class="section-h">Country profiles</div>` + profileCard(a) + profileCard(b);
     }
     html += `</div>`;
@@ -855,11 +917,6 @@ function runSimple(){
     relHTML(document.getElementById("sA").value, document.getElementById("sB").value, LEVEL);
 }
 
-function defaultLine(a,b,da,db){
-  const bad=[]; if(da.status!=="green")bad.push(a); if(db.status!=="green")bad.push(b);
-  if(bad.length) return `No specific dispute between them, but note the internal / airspace status of ${bad.join(" & ")} below.`;
-  return "No significant hostility on record — relations treated as ordinary. Verify current airspace & NOTAMs.";
-}
 function stateNotes(name,d){
   let out="";
   if(d.conflict) out+=f("red","Conflict / instability — "+name, d.conflict);
@@ -894,14 +951,14 @@ function runAdvanced(){
 
   if(reg!==div){
     const banned=airspaceBan(reg,div);
-    const rr=rel(reg,div);
+    const rr=pairAssessment(reg,div);
     if(banned){ overall="red";
       F.push(f("red","Aircraft barred — airspace ban",
         `${reg} and ${div} operate a mutual airspace ban (2022 sanctions). A ${reg}-registered/AOC aircraft cannot legally divert into ${div}, and faces impound and insurance-cover loss.`)); }
-    else if(rr && rr.lvl==="red"){ overall="red";
+    else if(rr.relLvl==="red"){ overall="red";
       F.push(f("red","Aircraft may be refused / at risk",
         `Relations between the aircraft's state (${reg}) and the diversion state (${div}) are hostile. ${rr.l1} This ${reg}-registered/AOC aircraft should not plan ${div} as a diversion — expect refusal, and in the worst case impound.`)); }
-    else if(rr && rr.lvl==="amber"){ overall=worse(overall,"amber");
+    else if(rr.relLvl==="amber"){ overall=worse(overall,"amber");
       F.push(f("amber","Aircraft-state sensitivity",
         `${reg} ↔ ${div}: ${rr.l1} Landing a ${reg}-registered aircraft is likely workable but sensitive — coordinate via Ops/handler.`)); }
     if(reg==="Israel" && D.passportBar && /Israel/i.test(D.passportBar)){ overall="red";
@@ -910,10 +967,10 @@ function runAdvanced(){
 
   [["origin",origin],["destination",dest]].forEach(([role,ctry])=>{
     if(ctry===div) return;
-    const rr=rel(ctry,div);
-    if(rr && rr.pax){ overall=worse(overall,"amber");
+    const rr=pairAssessment(ctry,div);
+    if(rr.pax){ overall=worse(overall,"amber");
       F.push(f("amber",`Passenger restriction (${role})`, `${ctry} ↔ ${div}: ${rr.pax}`)); }
-    else if(rr && rr.lvl==="red"){ overall=worse(overall,"amber");
+    else if(rr.relLvl==="red"){ overall=worse(overall,"amber");
       F.push(f("amber",`Passenger sensitivity (${role})`,
         `Hostile relations between ${ctry} (${role}) and diversion state ${div} may restrict passenger disembarkation / onward travel. ${rr.l1}`)); }
   });
@@ -1000,6 +1057,62 @@ function initMap(){
   mapA=document.getElementById("sA").value;          // seed from current Relations pair
   mapB=document.getElementById("sB").value;
   refreshMap();
+  initZoom();
+}
+
+/* ---- pan & zoom (mouse, wheel, touch/pinch) ---- */
+let vb, svgEl;
+function applyVB(){ svgEl.setAttribute("viewBox",`${vb.x} ${vb.y} ${vb.w} ${vb.h}`); }
+function clampVB(){
+  const AR=666/1010;
+  if(vb.w>1010){ vb.w=1010; vb.h=1010*AR; }
+  if(vb.w<120){ vb.w=120; vb.h=120*AR; }
+  if(vb.x<-40) vb.x=-40; if(vb.y<-40) vb.y=-40;
+  if(vb.x+vb.w>1050) vb.x=1050-vb.w;
+  if(vb.y+vb.h>706) vb.y=706-vb.h;
+}
+function zoomAt(px,py,f,r){
+  const cx=vb.x+(px/r.width)*vb.w, cy=vb.y+(py/r.height)*vb.h;
+  vb.w*=f; vb.h=vb.w*(666/1010);
+  vb.x=cx-(px/r.width)*vb.w; vb.y=cy-(py/r.height)*vb.h;
+  clampVB(); applyVB();
+}
+function zoomBtn(f){ const r=svgEl.getBoundingClientRect(); zoomAt(r.width/2,r.height/2,f,r); }
+function initZoom(){
+  svgEl=document.querySelector("#mapWrap svg");
+  vb={x:0,y:0,w:1010,h:666}; applyVB();
+  const pts=new Map(); let startDist=0, startVB=null, moved=0, downXY=null;
+  svgEl.addEventListener("pointerdown",e=>{
+    pts.set(e.pointerId,{x:e.clientX,y:e.clientY}); svgEl.setPointerCapture(e.pointerId);
+    moved=0; downXY={x:e.clientX,y:e.clientY};
+    if(pts.size===2){ const [p,q]=[...pts.values()]; startDist=Math.hypot(p.x-q.x,p.y-q.y); startVB={...vb}; }
+  });
+  svgEl.addEventListener("pointermove",e=>{
+    if(!pts.has(e.pointerId)) return;
+    const prev=pts.get(e.pointerId); pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    const r=svgEl.getBoundingClientRect();
+    if(pts.size===1){
+      vb.x-=(e.clientX-prev.x)*vb.w/r.width; vb.y-=(e.clientY-prev.y)*vb.h/r.height;
+      moved+=Math.abs(e.clientX-downXY.x)+Math.abs(e.clientY-downXY.y);
+      clampVB(); applyVB();
+    } else if(pts.size===2 && startVB){
+      const [p,q]=[...pts.values()]; const dist=Math.hypot(p.x-q.x,p.y-q.y)||1;
+      const mx=(p.x+q.x)/2-r.left, my=(p.y+q.y)/2-r.top;
+      const cx=startVB.x+(mx/r.width)*startVB.w, cy=startVB.y+(my/r.height)*startVB.h;
+      vb.w=startVB.w*(startDist/dist); vb.h=vb.w*(666/1010);
+      vb.x=cx-(mx/r.width)*vb.w; vb.y=cy-(my/r.height)*vb.h;
+      moved=99; clampVB(); applyVB();
+    }
+  });
+  const up=e=>{ pts.delete(e.pointerId); if(pts.size<2){ startVB=null; startDist=0; } };
+  svgEl.addEventListener("pointerup",up); svgEl.addEventListener("pointercancel",up);
+  svgEl.addEventListener("click",e=>{ if(moved>6){ e.stopPropagation(); e.preventDefault(); } },true);
+  svgEl.addEventListener("wheel",e=>{ e.preventDefault(); const r=svgEl.getBoundingClientRect();
+    zoomAt(e.clientX-r.left,e.clientY-r.top, e.deltaY<0?0.85:1.18, r); },{passive:false});
+  const z=document.createElement("div"); z.className="mapzoom";
+  z.innerHTML=`<button type="button" aria-label="Zoom in">+</button><button type="button" aria-label="Zoom out">−</button>`;
+  z.children[0].onclick=()=>zoomBtn(0.7); z.children[1].onclick=()=>zoomBtn(1.4);
+  document.getElementById("mapWrap").appendChild(z);
 }
 function pickCountry(name){
   if(!mapA) mapA=name;

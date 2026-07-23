@@ -265,7 +265,8 @@ const C = {
   "Northern Cyprus":{status:"amber", entity:{recognisedBy:"Turkey only"},
     note:"Self-declared TRNC. Ercan (LCEN) is not an ICAO-recognised international aerodrome; access effectively only via Turkey."},
   "Kosovo":{status:"amber",
-    entity:{recognisedBy:"~100 states — NOT Serbia, Russia, China or 5 EU members (ES, GR, CY, RO, SK)"},
+    entity:{recognisedBy:"~100 states — NOT Serbia, Russia, China or 5 EU members (ES, GR, CY, RO, SK)",
+      nonRec:["Serbia","Russia","China","Spain","Greece","Cyprus","Romania","Slovakia"]},
     note:"Pristina (BKPR) operates normally for recognising states; airspace run by HungaroControl."},
   "Turkey":{}, "Georgia":{note:"Abkhazia & South Ossetia are Russian-occupied — avoid those FIR pockets."},
   "Armenia":{}, "Azerbaijan":{},
@@ -400,10 +401,10 @@ const REL = {
     l2:"Cyprus was a British colony until 1960, and at independence the UK retained two Sovereign Base Areas — Akrotiri and Dhekelia — which remain UK territory. The two are close Commonwealth partners with large British expat and tourist populations. Relations are warm and cooperative.",
     l3:"Under the 1960 Treaty of Establishment, Britain kept the Sovereign Base Areas of Akrotiri and Dhekelia (~254 km²) as military installations; RAF Akrotiri is a major forward operating base for Middle East and Mediterranean operations and the bases host important signals-intelligence facilities. Beyond the bases, Cyprus and the UK share Commonwealth membership, deep trade, education and tourism ties and a very large British resident community. Relations are close — a UK diversion to Cyprus (or use of the SBAs) is straightforward."},
   "Gibraltar (UK)|Spain":{lvl:"amber",
-    l1:"Sovereignty dispute. Historic passenger-disembark restriction if a Gib flight diverts to Spain.",
-    l2:"Spain contests British sovereignty over Gibraltar. Historically, when a Gibraltar-bound or -originating flight diverted into Spain, passengers faced restrictions on disembarking and continuing overland. Post-Brexit arrangements have eased this — treat as sensitive and confirm current status.",
-    l3:"Gibraltar was ceded to Britain in 1713 under the Treaty of Utrecht; Spain has long sought its return and closed the land frontier entirely from 1969 to 1985. The airport sits on the disputed isthmus. For years Spain refused to treat Gibraltar as a normal destination, which is why a diverted LGW–GIB service landing on Spanish soil could leave passengers unable to continue freely. Post-Brexit talks aim to normalise the border and airport, but arrangements should be verified.",
-    pax:"Historically, passengers off a Gibraltar-bound/originating flight diverted into Spain could not freely disembark or continue overland (Spain would not treat them as arrivals from Gibraltar). Post-Brexit arrangements have eased this — confirm current status with Ops, but plan for possible restrictions on disembarkation and onward transport."},
+    l1:"Sovereignty still disputed, but a 2025 UK–EU–Spain treaty brings Schengen-style border controls — the old pax-disembark problem is largely resolved. Verify implementation.",
+    l2:"Spain still contests British sovereignty over Gibraltar, but in June 2025 the UK, EU and Spain reached a treaty removing the hard frontier and applying Schengen-style checks at Gibraltar's airport and port (Spanish/Frontex officers working alongside Gibraltar's). This largely removes the historic problem of passengers being unable to disembark or travel on after a diversion into Spain — confirm the treaty is in force and implemented for your operation.",
+    l3:"Gibraltar was ceded to Britain in 1713 under the Treaty of Utrecht; Spain has long sought its return and closed the land frontier entirely from 1969 to 1985. The airport sits on the disputed isthmus, and for years Spain refused to treat Gibraltar as a normal destination — which is why a diverted LGW–GIB service landing on Spanish soil could historically leave passengers unable to continue freely. The June 2025 UK–EU–Spain agreement provides for Gibraltar to enter the Schengen travel area with dual border controls at the airport and port and fluid movement across the land border, resolving most of the old operational friction. Sovereignty itself remains unresolved, and ratification/implementation should be verified.",
+    pax:"Under the 2025 UK–EU–Spain treaty, Schengen-style dual border controls at Gibraltar remove most of the historic restriction on disembarking or continuing overland after a diversion into Spain. Until you have confirmed the treaty is fully implemented for your route, still verify onward-travel arrangements with Ops."},
   "Algeria|Morocco":{lvl:"red",
     l1:"HOSTILE. Border & airspace CLOSED to each other. No cross-diversion.",
     l2:"Algeria closed its airspace to Morocco in 2021 and cut relations; the land border has been shut since 1994. Do not plan a diversion across the divide.",
@@ -1061,7 +1062,16 @@ function runAdvanced(){
 
   if(D.entity){ overall=worse(overall,"amber");
     F.push(f("amber","Non-recognised / disputed entity",
-      `${div} is not universally recognised (recognised by: ${D.entity.recognisedBy}). ${D.note||""} Consider legal, insurance, ATC-permit and onward-clearance implications; scheduled access may only be possible via the recognising state.`)); }
+      `${div} is not universally recognised (recognised by: ${D.entity.recognisedBy}). ${D.note||""} Consider legal, insurance, ATC-permit and onward-clearance implications; scheduled access may only be possible via the recognising state.`));
+    if(D.entity.nonRec){
+      if(D.entity.nonRec.includes(reg)){ overall="red";
+        F.push(f("red","Aircraft's state does not recognise "+div,
+          `${reg} — the state of registry/AOC — does not recognise ${div}. Expect serious legal, overflight/landing-permit and diplomatic complications; the operator's State of Registry may not sanction the landing, and it could later be treated as an unlawful entry. Treat ${div} as a last resort and coordinate with Ops/CAA.`)); }
+      const routeNR=[["origin",origin],["destination",dest]].filter(([r,c])=>c!==reg && D.entity.nonRec.includes(c));
+      if(routeNR.length){ overall=worse(overall,"amber");
+        F.push(f("amber","Route state(s) do not recognise "+div,
+          `${routeNR.map(o=>`${o[1]} (${o[0]})`).join(" & ")} do not recognise ${div}, which can complicate diplomatic clearance, handling and passenger onward-travel/documentation.`)); }
+    } }
 
   if(reg!==div){
     const banned=airspaceBan(reg,div);
